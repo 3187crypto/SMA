@@ -1,10 +1,13 @@
 // src/components/LanguageSwitcher.js
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { languages, getCurrentLanguage, setLanguage } from '../i18n';
 
 const LanguageSwitcher = ({ onLanguageChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
 
   const currentLangData = languages.find(l => l.code === currentLang) || languages[0];
@@ -14,14 +17,25 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
     setCurrentLang(langCode);
     setIsOpen(false);
     if (onLanguageChange) onLanguageChange(langCode);
-    // 刷新页面以应用所有翻译
     window.location.reload();
   };
 
-  // 点击外部关闭下拉菜单
+  // 计算下拉菜单位置
+  const updateDropdownPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 5,
+        left: rect.right - 160, // 160px 是菜单宽度
+      });
+    }
+  };
+
+  // 点击外部关闭
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (buttonRef.current && !buttonRef.current.contains(event.target) &&
+          dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -29,11 +43,32 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // 监听滚动和窗口大小变化，更新菜单位置
+  useEffect(() => {
+    if (isOpen) {
+      updateDropdownPosition();
+      window.addEventListener('scroll', updateDropdownPosition);
+      window.addEventListener('resize', updateDropdownPosition);
+      return () => {
+        window.removeEventListener('scroll', updateDropdownPosition);
+        window.removeEventListener('resize', updateDropdownPosition);
+      };
+    }
+  }, [isOpen]);
+
+  const toggleDropdown = () => {
+    if (!isOpen) {
+      updateDropdownPosition();
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
-    <div className="relative inline-block" ref={dropdownRef}>
+    <>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-sm"
+        ref={buttonRef}
+        onClick={toggleDropdown}
+        className="flex items-center space-x-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-sm relative z-50"
       >
         <span>{currentLangData.flag}</span>
         <span className="hidden sm:inline">{currentLangData.name}</span>
@@ -42,8 +77,16 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
         </svg>
       </button>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-xl border border-gray-200 z-[100] overflow-hidden" style={{ top: '100%' }}>
+      {isOpen && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed w-40 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            zIndex: 99999,
+          }}
+        >
           {languages.map((lang) => (
             <button
               key={lang.code}
@@ -61,9 +104,10 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
               )}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 
