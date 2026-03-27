@@ -330,7 +330,7 @@ function App() {
     
     try {
       const amount = ethers.utils.parseEther(depositAmount);
-      const approveTx = await getUSDTContract.approve(MINING_CONTRACT_ADDRESS, amount);
+      const approveTx = await getUSDTContract.approve(MINING_USDT_ADDRESS, amount);
       await approveTx.wait();
       const tx = await miningContract.deposit(amount);
       await tx.wait();
