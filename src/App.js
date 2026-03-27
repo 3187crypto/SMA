@@ -124,16 +124,25 @@ function App() {
     checkIsPool();
   }, [currentAccount, miningContract]);
 
-  const checkAndShowInviteModal = async (userData) => {
-    if (sessionStorage.getItem('inviteSkipped') === 'true') return;
-    if (myInviteCode) return;
-    if (userData && parseFloat(userData.cumulativeDeposited) > 0) return;
-    try {
-      const referrer = await miningContract.referrers(account);
-      if (referrer && referrer !== '0x0000000000000000000000000000000000000000') return;
-    } catch (e) {}
-    setShowInviteModal(true);
-  };
+  const checkAndShowInviteModal = async () => {
+  // 用户主动跳过
+  if (sessionStorage.getItem('inviteSkipped') === 'true') return;
+  
+  // 已有邀请码
+  if (myInviteCode) return;
+  
+  // 已有存款记录
+  if (parseFloat(userInfo.cumulativeDeposited) > 0) return;
+  
+  // 已被他人绑定
+  try {
+    const referrer = await miningContract.referrers(account);
+    if (referrer && referrer !== '0x0000000000000000000000000000000000000000') return;
+  } catch (e) {}
+  
+  // 所有条件都不满足，显示弹窗
+  setShowInviteModal(true);
+};
 
   const connectWallet = async (connector) => {
     try {
@@ -188,7 +197,7 @@ function App() {
         setIsNode(nodeData.isNode);
       } catch (e) {}
       
-      await checkAndShowInviteModal(userInfo);
+      await checkAndShowInviteModal();
       
     } catch (error) {
       console.error(error);
