@@ -5,7 +5,7 @@ import { loadConfig, saveConfig } from '../services/ownerConfig';
 const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [config, setConfig] = useState(loadConfig());
   const [pendingUSDT, setPendingUSDT] = useState('0');
-  const [pendingCULTURE, setPendingCULTURE] = useState('0');
+  const [pendingSMA, setPendingSMA] = useState('0');
   const [pendingBuyback, setPendingBuyback] = useState('0');
   const [pendingNodeRewards, setPendingNodeRewards] = useState('0');
   const [nodeCount, setNodeCount] = useState(0);
@@ -23,7 +23,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     try {
       const pending = await contract.getPendingStatus();
       setPendingUSDT(ethers.utils.formatEther(pending.pendingUSDT));
-      setPendingCULTURE(ethers.utils.formatEther(pending.pendingSMA));
+      setPendingSMA(ethers.utils.formatEther(pending.pendingSMA));
       setPendingBuyback(ethers.utils.formatEther(pending.pendingBuybackUSDT));
       
       try {
@@ -41,7 +41,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     loadPendingData();
     const interval = setInterval(loadPendingData, 10000);
     return () => clearInterval(interval);
-  }, [contract, loadPendingData]);
+  }, [contract]);
 
   const toggleFeature = (feature) => {
     const newConfig = {
@@ -164,7 +164,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     try {
       const tx = await contract.distributeNodeRewards();
       await tx.wait();
-      showMessage('节点奖励发放成功');
+      showMessage('节点SMA奖励发放成功');
       loadPendingData();
     } catch (error) {
       showMessage('发放节点奖励失败: ' + error.message, 'error');
@@ -279,7 +279,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-gray-400 text-base">待发放 SMA:</span>
-                  <span className="text-white text-base font-medium">{parseFloat(pendingCULTURE).toFixed(2)}</span>
+                  <span className="text-white text-base font-medium">{parseFloat(pendingSMA).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-700 pb-3">
                   <span className="text-gray-400 text-base">待回购 USDT:</span>
@@ -353,8 +353,8 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   <span className="text-white text-base font-medium">{Number(nodeCount)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-base">待发放奖励:</span>
-                  <span className="text-white text-base font-medium">{parseFloat(pendingNodeRewards).toFixed(2)} USDT</span>
+                  <span className="text-gray-400 text-base">待发放 SMA 奖励:</span>
+                  <span className="text-white text-base font-medium">{parseFloat(pendingNodeRewards).toFixed(2)} SMA</span>
                 </div>
               </div>
 
@@ -402,10 +402,10 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   disabled={loading || parseFloat(pendingNodeRewards) <= 0}
                   className="w-full py-3 bg-purple-600 text-white rounded-xl text-base font-medium disabled:opacity-50"
                 >
-                  发放奖励
+                  发放 SMA 奖励
                 </button>
                 <p className="text-gray-500 text-sm mt-3 text-center">
-                  奖励将按节点贡献分配
+                  SMA 奖励将按节点贡献分配
                 </p>
               </div>
             </div>
