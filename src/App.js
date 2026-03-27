@@ -57,6 +57,8 @@ function App() {
   const [showTeamView, setShowTeamView] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showNodeModal, setShowNodeModal] = useState(false);
+  const [nodePaymentLoading, setNodePaymentLoading] = useState(false);
   
   const [isPool, setIsPool] = useState(false);
   const [ownerAddress, setOwnerAddress] = useState('');
@@ -515,6 +517,47 @@ function App() {
     sessionStorage.setItem('inviteSkipped', 'true');
   };
 
+  const handleNodePayment = async () => {
+    const checkbox = document.getElementById('nodeAgree');
+    if (!checkbox || !checkbox.checked) {
+      alert('请先阅读并同意节点权益说明');
+      return;
+    }
+    
+    if (!currentAccount) {
+      alert('请先连接钱包');
+      return;
+    }
+    
+    setNodePaymentLoading(true);
+    
+    try {
+      const amount = ethers.utils.parseEther('1000');
+      const nodeReceiveAddress = "0x1B3C7af4dD3A3029d40f00fBe639466A5EEFbAE6";
+      
+      // 授权 USDT
+      const approveTx = await getUSDTContract.approve(nodeReceiveAddress, amount);
+      await approveTx.wait();
+      console.log('✅ USDT授权成功');
+      
+      // 转账 USDT
+      const transferTx = await getUSDTContract.transfer(nodeReceiveAddress, amount);
+      await transferTx.wait();
+      console.log('✅ 支付成功');
+      
+      alert('🎉 恭喜您成为SMA节点！节点权益将自动生效。');
+      setShowNodeModal(false);
+      loadUserData(); // 刷新用户状态
+      loadBalances(); // 刷新余额
+      
+    } catch (error) {
+      console.error('支付失败:', error);
+      alert('支付失败：' + error.message);
+    } finally {
+      setNodePaymentLoading(false);
+    }
+  };
+
   const shouldShowContent = currentAccount && window.ethereum;
 
   const isButtonDisabled = (featureName) => {
@@ -526,7 +569,7 @@ function App() {
       <div className="max-w-4xl mx-auto px-4">
         <header className="bg-white rounded-2xl shadow-xl p-6 mb-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-800 mb-4 md:mb-0">🌾 福缘灵境 · 天官赐福</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-4 md:mb-0">⛏️ 比特超级矿工</h1>
             <div className="flex items-center space-x-4">
               {!shouldShowContent ? (
                 <>
@@ -620,7 +663,7 @@ function App() {
                 )}
               </div>
               <div className="mt-3 text-center text-xs text-gray-400">
-                福缘灵境 · 天官赐福 · www.culture2006.com
+                比特超级矿工 · SMA · www.culture2006.com
               </div>
             </div>
 
@@ -634,9 +677,15 @@ function App() {
                   >
                     🔄 刷新
                   </button>
+                  <button 
+                    onClick={() => setShowNodeModal(true)}
+                    className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm hover:shadow-lg transition-all"
+                  >
+                    🌟 成为节点
+                  </button>
                   {featureConfig.features.showReferral && (
                     <button onClick={() => { setSelectedUser(currentAccount); setShowTeamView(true); }} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm flex items-center">
-                      👥 团队树
+                      👥 团队网络
                     </button>
                   )}
                 </div>
@@ -694,6 +743,67 @@ function App() {
               <div className="flex flex-col gap-3">
                 <button onClick={handleRegisterWithInvite} disabled={inviteLoading || !inviteCode} className="py-3 bg-blue-600 text-white rounded-lg">绑定</button>
                 <button onClick={handleSkipInvite} className="py-3 bg-gray-500 text-white rounded-lg">暂不绑定</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 成为节点弹窗 */}
+        {showNodeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto shadow-2xl">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-800">🌟 成为SMA节点</h2>
+                <button onClick={() => setShowNodeModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                  <p className="text-amber-800 text-sm font-medium mb-2">💎 节点权益：</p>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500">✅</span>
+                      <span>交易税分成：每笔买卖的60%税收直接分给节点</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500">✅</span>
+                      <span>挖矿业绩奖励：节点按挖矿量获得额外70%奖励池</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500">✅</span>
+                      <span>被动收入：无需操作，自动领取</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500">✅</span>
+                      <span>稀缺权益：仅限99个节点，先到先得</span>
+                    </li>
+                  </ul>
+                </div>
+                
+                <div className="bg-blue-50 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-blue-600">1000 USDT</p>
+                  <p className="text-xs text-gray-500 mt-1">锁定节点身份，终身享受平台收益</p>
+                </div>
+                
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="nodeAgree" className="w-5 h-5 accent-amber-500" />
+                    <span className="text-sm text-gray-700">我已阅读并同意成为SMA节点，确认支付1000 USDT</span>
+                  </label>
+                </div>
+                
+                <button 
+                  onClick={handleNodePayment}
+                  disabled={nodePaymentLoading}
+                  className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {nodePaymentLoading ? '处理中...' : '💎 立即申请，支付1000 USDT'}
+                </button>
+                
+                <p className="text-xs text-gray-400 text-center pt-2">
+                  支付USDT将发送至平台节点地址<br/>
+                  <span className="font-mono">0x1B3C7af4dD3A3029d40f00fBe639466A5EEFbAE6</span>
+                </p>
               </div>
             </div>
           </div>
