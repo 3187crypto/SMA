@@ -68,10 +68,17 @@ function App() {
 
   const submittingRef = useRef({});
 
+  // 缓存合约实例
   const miningContract = useMemo(() => {
     if (!library) return null;
     const signer = library.getSigner();
-    return new ethers.Contract(MINING_CONTRACT_ADDRESS, MiningABI, signer);
+    const contract = new ethers.Contract(MINING_CONTRACT_ADDRESS, MiningABI, signer);
+    
+    // 挂载到 window 对象，方便调试
+    window.miningContract = contract;
+    console.log('✅ 合约实例已挂载到 window.miningContract');
+    
+    return contract;
   }, [library]);
 
   const getUSDTContract = useMemo(() => {
@@ -244,13 +251,17 @@ function App() {
     }
   }, [miningContract]);
 
+  // ✅ 唯一的事件监听 useEffect（已清理重复）
   useEffect(() => {
     const currentAccount = account || manualAccount;
     if (currentAccount && miningContract) {
       console.log('用户已登录:', currentAccount);
       
+      // 挂载当前账户到 window 对象（调试用）
       window._currentUserAddress = currentAccount;
+      console.log('✅ 当前账户已挂载到 window._currentUserAddress:', currentAccount);
       
+      // 定义事件处理函数
       const handleBound = (downline, upline, event) => {
         const uplineAddr = upline.toLowerCase();
         const downlineAddr = downline.toLowerCase();
@@ -268,10 +279,12 @@ function App() {
         }
       };
       
+      // 添加事件监听
       miningContract.on("Bound", handleBound);
       window._listeningStarted = true;
       console.log('✅ 团队监听已启动');
       
+      // 清理函数（防止内存泄漏）
       return () => {
         miningContract.off("Bound", handleBound);
         console.log('🛑 团队监听已清理');
@@ -602,11 +615,19 @@ function App() {
             <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-6 md:mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">我的资产</h2>
-                {featureConfig.features.showReferral && (
-                  <button onClick={() => { setSelectedUser(currentAccount); setShowTeamView(true); }} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm flex items-center">
-                    👥 团队树
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => { loadUserData(); loadBalances(); }}
+                    className="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300"
+                  >
+                    🔄 刷新
                   </button>
-                )}
+                  {featureConfig.features.showReferral && (
+                    <button onClick={() => { setSelectedUser(currentAccount); setShowTeamView(true); }} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm flex items-center">
+                      👥 团队树
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div><p className="text-gray-500 text-xs">存款本金</p><p className="text-base font-medium">{parseFloat(userInfo.depositBase).toFixed(4)}</p></div>
