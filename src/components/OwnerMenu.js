@@ -27,6 +27,8 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [cancelProposalId, setCancelProposalId] = useState('');
   const [emergencyRecipient, setEmergencyRecipient] = useState('');
   const [emergencyAmount, setEmergencyAmount] = useState('');
+  const [proposalList, setProposalList] = useState([]);
+  const [proposalLoading, setProposalLoading] = useState(false);
 
   const loadPendingData = async () => {
     if (!contract) return;
@@ -47,11 +49,58 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     }
   };
 
+  const loadProposals = async () => {
+    if (!contract) return;
+    setProposalLoading(true);
+    try {
+      let totalProposals = 0;
+      try {
+        totalProposals = await contract.proposalsLength();
+      } catch {
+        try {
+          totalProposals = Number(await contract.getProposalCount?.()) || 0;
+        } catch {
+          totalProposals = 0;
+        }
+      }
+      
+      const proposals = [];
+      for (let i = 0; i < totalProposals; i++) {
+        try {
+          const proposal = await contract.getProposal(i);
+          proposals.push({
+            id: i,
+            target: proposal.target,
+            amount: ethers.utils.formatEther(proposal.amount),
+            yesCount: Number(proposal.yesCount),
+            noCount: Number(proposal.noCount),
+            executed: proposal.executed,
+            active: proposal.active,
+            createdAt: Number(proposal.createdAt),
+            memberCountAtCreation: Number(proposal.memberCountAtCreation),
+            requiredVotes: Math.floor(Number(proposal.memberCountAtCreation) / 2) + 1
+          });
+        } catch (e) {}
+      }
+      setProposalList(proposals);
+    } catch (error) {
+      console.error('加载提案列表失败:', error);
+    } finally {
+      setProposalLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadPendingData();
     const interval = setInterval(loadPendingData, 10000);
     return () => clearInterval(interval);
   }, [contract]);
+
+  useEffect(() => {
+    if (activeTab === 'governance') {
+      loadProposals();
+    }
+  }, [activeTab, contract]);
 
   const toggleFeature = (feature) => {
     const newConfig = {
@@ -195,6 +244,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       await tx.wait();
       showMessage(`成功添加成员: ${memberAddress.slice(0,6)}...${memberAddress.slice(-4)}`);
       setMemberAddress('');
+      loadProposals();
     } catch (error) {
       showMessage('添加成员失败: ' + error.message, 'error');
     } finally {
@@ -213,6 +263,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       await tx.wait();
       showMessage(`成功移除成员: ${removeMemberAddress.slice(0,6)}...${removeMemberAddress.slice(-4)}`);
       setRemoveMemberAddress('');
+      loadProposals();
     } catch (error) {
       showMessage('移除成员失败: ' + error.message, 'error');
     } finally {
@@ -267,6 +318,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       await tx.wait();
       showMessage(`成功执行提案 #${executeProposalId}`);
       setExecuteProposalId('');
+      loadProposals();
     } catch (error) {
       showMessage('执行提案失败: ' + error.message, 'error');
     } finally {
@@ -285,6 +337,37 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       await tx.wait();
       showMessage(`成功取消提案 #${cancelProposalId}`);
       setCancelProposalId('');
+      loadProposals();
+    } catch (error) {
+      showMessage('取消提案失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExecuteProposalById = async (proposalId) => {
+    if (typeof proposalId !== 'number') return;
+    setLoading(true);
+    try {
+      const tx = await contract.executeProposal(proposalId);
+      await tx.wait();
+      showMessage(`成功执行提案 #${proposalId}`);
+      loadProposals();
+    } catch (error) {
+      showMessage('执行提案失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelProposalById = async (proposalId) => {
+    if (typeof proposalId !== 'number') return;
+    setLoading(true);
+    try {
+      const tx = await contract.cancelProposal(proposalId);
+      await tx.wait();
+      showMessage(`成功取消提案 #${proposalId}`);
+      loadProposals();
     } catch (error) {
       showMessage('取消提案失败: ' + error.message, 'error');
     } finally {
@@ -573,8 +656,11 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
 
           {activeTab === 'governance' && (
             <div className="bg-gray-800 rounded-xl p-4 space-y-4">
+              {/* 成员管理 */}
               <div>
-                <h4 className="text-white font-medium mb-3">成员管理</h4>
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <span>👥</span> 成员管理
+                </h4>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="text"
@@ -597,8 +683,11 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                 </div>
               </div>
               
+              {/* 提案人管理 */}
               <div className="border-t border-gray-700 pt-3">
-                <h4 className="text-white font-medium mb-3">提案人管理</h4>
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <span>📝</span> 提案人管理
+                </h4>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="text"
@@ -621,8 +710,79 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                 </div>
               </div>
               
+              {/* 提案列表 */}
               <div className="border-t border-gray-700 pt-3">
-                <h4 className="text-white font-medium mb-3">提案管理</h4>
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <span>📋</span> 提案列表
+                </h4>
+                {proposalLoading ? (
+                  <div className="text-center py-4 text-gray-400 text-sm">加载中...</div>
+                ) : proposalList.length === 0 ? (
+                  <div className="text-center py-4 text-gray-400 text-sm">暂无提案</div>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {proposalList.map(proposal => (
+                      <div key={proposal.id} className="bg-gray-700 rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-xs text-gray-400">提案 #{proposal.id}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            proposal.executed ? 'bg-green-900 text-green-300' :
+                            !proposal.active ? 'bg-red-900 text-red-300' :
+                            'bg-yellow-900 text-yellow-300'
+                          }`}>
+                            {proposal.executed ? '已执行' : !proposal.active ? '已取消' : '投票中'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-300 mb-1 font-mono">
+                          📤 {proposal.target.slice(0, 8)}...{proposal.target.slice(-6)}
+                        </div>
+                        <div className="text-sm font-bold text-yellow-400 mb-2">
+                          {parseFloat(proposal.amount).toFixed(2)} USDT
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-400 mb-2">
+                          <span>👍 {proposal.yesCount}</span>
+                          <span>👎 {proposal.noCount}</span>
+                          <span>需 {proposal.requiredVotes} 票</span>
+                        </div>
+                        <div className="w-full bg-gray-600 rounded-full h-1 mb-3">
+                          <div 
+                            className="bg-green-500 h-1 rounded-full" 
+                            style={{ width: `${Math.min(100, (proposal.yesCount / proposal.requiredVotes) * 100)}%` }}
+                          ></div>
+                        </div>
+                        {!proposal.executed && proposal.active && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleExecuteProposalById(proposal.id)}
+                              disabled={loading || proposal.yesCount < proposal.requiredVotes}
+                              className={`flex-1 py-1.5 text-xs rounded-lg ${
+                                proposal.yesCount >= proposal.requiredVotes
+                                  ? 'bg-blue-600 hover:bg-blue-700'
+                                  : 'bg-gray-600 cursor-not-allowed'
+                              } text-white`}
+                            >
+                              执行提案
+                            </button>
+                            <button
+                              onClick={() => handleCancelProposalById(proposal.id)}
+                              disabled={loading}
+                              className="flex-1 py-1.5 bg-orange-600 text-white text-xs rounded-lg hover:bg-orange-700"
+                            >
+                              取消提案
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* 提案管理快捷操作 */}
+              <div className="border-t border-gray-700 pt-3">
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <span>⚡</span> 快捷操作
+                </h4>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="number"
@@ -645,8 +805,11 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                 </div>
               </div>
               
+              {/* 紧急权限 */}
               <div className="border-t border-gray-700 pt-3">
-                <h4 className="text-white font-medium mb-3">紧急权限</h4>
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <span>⚠️</span> 紧急权限
+                </h4>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="text"
@@ -664,7 +827,16 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   />
                   <button onClick={handleEmergencyWithdraw} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">提款</button>
                 </div>
-                <button onClick={handleRevokeEmergency} className="w-full py-2 bg-gray-600 text-white rounded-lg text-sm">撤销紧急权限</button>
+                <button 
+                  onClick={handleRevokeEmergency} 
+                  disabled={loading}
+                  className="w-full py-2 bg-gray-600 text-white rounded-lg text-sm hover:bg-red-700 transition disabled:opacity-50"
+                >
+                  ⚠️ 撤销紧急权限（永久，不可逆）
+                </button>
+                <p className="text-gray-500 text-xs mt-2 text-center">
+                  撤销后紧急提款功能将永久关闭，请谨慎操作
+                </p>
               </div>
             </div>
           )}
