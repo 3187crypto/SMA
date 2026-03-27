@@ -161,14 +161,26 @@ function App() {
     if (!currentAccount || !miningContract) return;
     try {
       const info = await miningContract.users(currentAccount);
+      console.log('原始返回数据:', info);
+      
+      // 支持数组和对象两种访问方式
+      const depositBase = info.depositBase || info[0];
+      const remainingDeposit = info.remainingDeposit || info[1];
+      const pendingReward = info.pendingReward || info[3];
+      const cumulativeDeposited = info.cumulativeDeposited || info[4];
+      const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
+      const totalRewarded = info.totalMiningRewarded || info[6];
+      
       const formattedInfo = {
-        depositBase: ethers.utils.formatEther(info.depositBase),
-        remainingDeposit: ethers.utils.formatEther(info.remainingDeposit),
-        pendingReward: ethers.utils.formatEther(info.pendingReward),
-        cumulativeDeposited: ethers.utils.formatEther(info.cumulativeDeposited),
-        cumulativeWithdrawn: ethers.utils.formatEther(info.cumulativeWithdrawn),
-        totalRewarded: ethers.utils.formatEther(info.totalRewarded)
+        depositBase: ethers.utils.formatEther(depositBase || 0),
+        remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
+        pendingReward: ethers.utils.formatEther(pendingReward || 0),
+        cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
+        cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
+        totalRewarded: ethers.utils.formatEther(totalRewarded || 0)
       };
+      
+      console.log('格式化后数据:', formattedInfo);
       setUserInfo(formattedInfo);
 
       const reward = await miningContract.pendingReward(currentAccount);
@@ -196,7 +208,7 @@ function App() {
       await checkAndShowInviteModal(formattedInfo);
       
     } catch (error) {
-      console.error(error);
+      console.error('加载用户数据失败:', error);
     }
   };
 
@@ -251,7 +263,7 @@ function App() {
     }
   }, [miningContract]);
 
-  // ✅ 唯一的事件监听 useEffect（已清理重复）
+  // 唯一的事件监听 useEffect
   useEffect(() => {
     const currentAccount = account || manualAccount;
     if (currentAccount && miningContract) {
