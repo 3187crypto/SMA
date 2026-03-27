@@ -30,7 +30,7 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
   }, []);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative inline-block" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-sm"
@@ -43,7 +43,7 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] overflow-hidden">
+        <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-xl border border-gray-200 z-[100] overflow-hidden" style={{ top: '100%' }}>
           {languages.map((lang) => (
             <button
               key={lang.code}

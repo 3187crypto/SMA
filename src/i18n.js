@@ -1,8 +1,7 @@
 // src/i18n.js
-// 多语言配置文件：简体中文、繁体中文、English、Deutsch、Español
+// 多语言配置文件：繁體中文、English、Deutsch、Español
 
 export const languages = [
-  { code: 'zh-CN', name: '简体中文', flag: '🇨🇳' },
   { code: 'zh-TW', name: '繁體中文', flag: '🇭🇰' },
   { code: 'en', name: 'English', flag: '🇺🇸' },
   { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
@@ -10,116 +9,9 @@ export const languages = [
 ];
 
 export const translations = {
-  // 简体中文
-  'zh-CN': {
-    // 通用
-    appName: '⛏️ 比特超级矿工',
-    connect: '连接钱包',
-    disconnect: '断开',
-    refresh: '刷新',
-    copy: '复制',
-    copied: '✓ 已复制',
-    
-    // 数据卡片
-    usdtBalance: 'USDT余额',
-    smaBalance: 'SMA余额',
-    currentPrice: '当前价格',
-    marketPrice: '市场价格',
-    
-    // 邀请码
-    inviteCode: '邀请码',
-    generateInviteCode: '生成邀请码',
-    generating: '生成中...',
-    
-    // 我的资产
-    myAssets: '我的资产',
-    depositPrincipal: '存款本金',
-    remainingPrincipal: '剩余本金',
-    pendingReward: '待领取',
-    totalReward: '累计奖励',
-    claimReward: '领取奖励',
-    claiming: '领取中...',
-    
-    // 存款/提款
-    deposit: '存款',
-    withdraw: '提款',
-    enterAmount: '输入数量',
-    depositing: '存款中...',
-    withdrawing: '提款中...',
-    
-    // 绑定推荐
-    bindReferral: '绑定推荐',
-    bindReferralDesc: '绑定推荐（需支付0.001 BNB）',
-    enterAddress: '输入地址',
-    binding: '绑定中...',
-    
-    // 团队网络
-    teamNetwork: '团队网络',
-    networkHashrate: '网络总算力',
-    
-    // 节点
-    becomeNode: '成为节点',
-    nodeTitle: '🌟 成为SMA节点',
-    nodeBenefits: '💎 节点权益：',
-    nodeBenefit1: '交易税分成：每笔买卖的60%税收直接分给节点',
-    nodeBenefit2: '挖矿业绩奖励：节点按挖矿量获得额外70%奖励池',
-    nodeBenefit3: '被动收入：无需操作，自动领取',
-    nodeBenefit4: '稀缺权益：仅限99个节点，先到先得',
-    nodePrice: '1000 USDT',
-    nodeDesc: '锁定节点身份，终身享受平台收益',
-    nodeAgree: '我已阅读并同意成为SMA节点，确认支付1000 USDT',
-    nodeApply: '💎 立即申请，支付1000 USDT',
-    nodeProcessing: '处理中...',
-    nodeSuccess: '🎉 恭喜您成为SMA节点！节点权益将自动生效。',
-    nodeAddressLabel: '支付USDT将发送至平台节点地址',
-    
-    // 邀请弹窗
-    bindReferralModal: '绑定推荐',
-    enterInviteCode: '输入邀请码，绑定推荐关系',
-    inviteCodePlaceholder: '请输入8位邀请码',
-    bind: '绑定',
-    skip: '暂不绑定',
-    
-    // 矿池/节点标识
-    miningPool: '矿池',
-    nodeBadge: '节点',
-    
-    // 按钮状态
-    maintenance: '维护中',
-    success: '成功',
-    failed: '失败',
-    
-    // 提示信息
-    pleaseConnectWallet: '请先连接钱包',
-    pleaseEnterValidAddress: '请输入有效地址',
-    pleaseEnterInviteCode: '请输入邀请码',
-    pleaseAgreeTerms: '请先阅读并同意节点权益说明',
-    depositSuccess: '存款成功！',
-    depositFailed: '存款失败：',
-    withdrawSuccess: '提款成功！',
-    withdrawFailed: '提款失败：',
-    claimSuccess: '领取奖励成功！',
-    claimFailed: '领取奖励失败：',
-    bindSuccess: '绑定推荐成功！',
-    bindFailed: '绑定推荐失败：',
-    generateCodeSuccess: '生成邀请码成功！',
-    generateCodeFailed: '生成邀请码失败：',
-    copyFailed: '复制失败，请手动复制：',
-    paymentFailed: '支付失败：',
-    
-    // SMA进度
-    smaProgress: 'SMA进度',
-    totalSupply: '总发行',
-    
-    // 其他
-    loading: '加载中...',
-    noMembers: '暂无团队成员',
-    inviteFriends: '邀请好友加入，共同成长！',
-    close: '关闭'
-  },
-
   // 繁體中文
   'zh-TW': {
+    // 通用
     appName: '⛏️ 比特超級礦工',
     connect: '連接錢包',
     disconnect: '斷開',
@@ -127,15 +19,18 @@ export const translations = {
     copy: '複製',
     copied: '✓ 已複製',
     
+    // 数据卡片
     usdtBalance: 'USDT餘額',
     smaBalance: 'SMA餘額',
     currentPrice: '當前價格',
     marketPrice: '市場價格',
     
+    // 邀请码
     inviteCode: '邀請碼',
     generateInviteCode: '生成邀請碼',
     generating: '生成中...',
     
+    // 我的资产
     myAssets: '我的資產',
     depositPrincipal: '存款本金',
     remainingPrincipal: '剩餘本金',
@@ -144,20 +39,24 @@ export const translations = {
     claimReward: '領取獎勵',
     claiming: '領取中...',
     
+    // 存款/提款
     deposit: '存款',
     withdraw: '提款',
     enterAmount: '輸入數量',
     depositing: '存款中...',
     withdrawing: '提款中...',
     
+    // 绑定推荐
     bindReferral: '綁定推薦',
     bindReferralDesc: '綁定推薦（需支付0.001 BNB）',
     enterAddress: '輸入地址',
     binding: '綁定中...',
     
+    // 团队网络
     teamNetwork: '團隊網絡',
     networkHashrate: '網絡總算力',
     
+    // 节点
     becomeNode: '成為節點',
     nodeTitle: '🌟 成為SMA節點',
     nodeBenefits: '💎 節點權益：',
@@ -173,19 +72,23 @@ export const translations = {
     nodeSuccess: '🎉 恭喜您成為SMA節點！節點權益將自動生效。',
     nodeAddressLabel: '支付USDT將發送至平台節點地址',
     
+    // 邀请弹窗
     bindReferralModal: '綁定推薦',
     enterInviteCode: '輸入邀請碼，綁定推薦關係',
     inviteCodePlaceholder: '請輸入8位邀請碼',
     bind: '綁定',
     skip: '暫不綁定',
     
+    // 矿池/节点标识
     miningPool: '礦池',
     nodeBadge: '節點',
     
+    // 按钮状态
     maintenance: '維護中',
     success: '成功',
     failed: '失敗',
     
+    // 提示信息
     pleaseConnectWallet: '請先連接錢包',
     pleaseEnterValidAddress: '請輸入有效地址',
     pleaseEnterInviteCode: '請輸入邀請碼',
@@ -203,16 +106,18 @@ export const translations = {
     copyFailed: '複製失敗，請手動複製：',
     paymentFailed: '支付失敗：',
     
+    // SMA进度
     smaProgress: 'SMA進度',
     totalSupply: '總發行',
     
+    // 其他
     loading: '加載中...',
     noMembers: '暫無團隊成員',
     inviteFriends: '邀請好友加入，共同成長！',
     close: '關閉'
   },
 
-  // English
+  // English (保持原有内容)
   'en': {
     appName: '⛏️ Bit Super Miner',
     connect: 'Connect Wallet',
@@ -306,7 +211,7 @@ export const translations = {
     close: 'Close'
   },
 
-  // Deutsch
+  // Deutsch (保留原有内容)
   'de': {
     appName: '⛏️ Bit Super Miner',
     connect: 'Wallet verbinden',
@@ -400,7 +305,7 @@ export const translations = {
     close: 'Schließen'
   },
 
-  // Español
+  // Español (保留原有内容)
   'es': {
     appName: '⛏️ Bit Super Miner',
     connect: 'Conectar Wallet',
@@ -495,11 +400,11 @@ export const translations = {
   }
 };
 
-// 获取当前语言（从 localStorage 读取，默认简体中文）
+// 获取当前语言（从 localStorage 读取，默认繁体中文）
 export const getCurrentLanguage = () => {
   const saved = localStorage.getItem('language');
   if (saved && translations[saved]) return saved;
-  return 'zh-CN';
+  return 'zh-TW';
 };
 
 // 保存语言选择
@@ -517,7 +422,7 @@ export const t = (langCode, key) => {
   if (langData && langData[key] !== undefined) {
     return langData[key];
   }
-  // 回退到简体中文
-  const fallback = translations['zh-CN'];
+  // 回退到繁体中文
+  const fallback = translations['zh-TW'];
   return fallback[key] || key;
 };
