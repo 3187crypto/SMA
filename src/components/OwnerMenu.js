@@ -185,7 +185,9 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     bind: '绑定推荐',
     showReferral: '团队树',
     showPrice: '价格显示',
-    showMinted: '发行总量'
+    showMinted: '发行总量',
+    showPoolBadge: '矿池面板',
+    showNodeBadge: '节点面板'
   };
 
   return (

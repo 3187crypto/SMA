@@ -493,18 +493,35 @@ function App() {
                     <span className="text-gray-600 text-sm">
                       {currentAccount?.slice(0,6)}...{currentAccount?.slice(-4)}
                     </span>
-                    {isPool && (
-                      <button onClick={() => setShowPoolPanel(true)} className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full flex items-center hover:bg-yellow-200 transition cursor-pointer">
-                        ⛏️ {tr('miningPool')}
-                      </button>
-                    )}
-                    {isNode && (
-                      <button onClick={() => setShowNodePanel(true)} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full flex items-center hover:bg-purple-200 transition cursor-pointer">
-                        🌟 {tr('nodeBadge')}
-                      </button>
-                    )}
+                  {/* 矿池徽章 */}
+{isPool && (
+  <button 
+    onClick={() => {
+      if (featureConfig.features.showPoolBadge) {
+        setShowPoolPanel(true);
+      }
+    }}
+    className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full flex items-center hover:bg-yellow-200 transition cursor-pointer"
+  >
+    ⛏️ {tr('miningPool')}
+  </button>
+)}
+
+{/* 节点徽章 */}
+{isNode && (
+  <button 
+    onClick={() => {
+      if (featureConfig.features.showNodeBadge) {
+        setShowNodePanel(true);
+      }
+    }}
+    className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full flex items-center hover:bg-purple-200 transition cursor-pointer"
+  >
+    🌟 {tr('nodeBadge')}
+  </button>
+)}
                   </div>
-                  {isOwner && (
+                       {isOwner && (
                     <button onClick={() => setShowOwnerMenu(!showOwnerMenu)} className="p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
                       ⚙️
                     </button>

@@ -1,4 +1,3 @@
-// src/components/PoolPanel.js
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 
@@ -13,12 +12,10 @@ const PoolPanel = ({ contract, userAddress, onClose }) => {
   useEffect(() => {
     const loadPoolData = async () => {
       if (!contract || !userAddress) return;
-      
       setLoading(true);
       try {
         const userInfo = await contract.users(userAddress);
         const remainingCap = await contract.getRemainingNonMiningRewardCap(userAddress);
-        
         setPoolData({
           totalPoolRewarded: ethers.utils.formatEther(userInfo.totalPoolRewarded),
           remainingCap: ethers.utils.formatEther(remainingCap),
@@ -30,13 +27,10 @@ const PoolPanel = ({ contract, userAddress, onClose }) => {
         setLoading(false);
       }
     };
-    
     loadPoolData();
   }, [contract, userAddress]);
 
-  const formatNumber = (num) => {
-    return parseFloat(num).toFixed(2);
-  };
+  const formatNumber = (num) => parseFloat(num).toFixed(2);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
@@ -57,7 +51,6 @@ const PoolPanel = ({ contract, userAddress, onClose }) => {
             </div>
           ) : (
             <>
-              {/* 收益统计 */}
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4">
                 <p className="text-amber-800 text-sm font-medium mb-3">📊 收益统计</p>
                 <div className="space-y-3">
@@ -76,26 +69,13 @@ const PoolPanel = ({ contract, userAddress, onClose }) => {
                 </div>
               </div>
               
-              {/* 权益说明 */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-gray-700 text-sm font-medium mb-3">📋 矿池权益说明</p>
                 <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-500">•</span>
-                    <span>下级领取奖励时，您可获得该笔奖励的 5%</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-500">•</span>
-                    <span>矿池有效期 45 天，每次获得奖励后重置计时</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-500">•</span>
-                    <span>矿池奖励上限为净存款的 2 倍</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-500">•</span>
-                    <span>超过 45 天未获得奖励，矿池资格自动失效</span>
-                  </li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500">•</span><span>下级领取奖励时，您可获得该笔奖励的 5%</span></li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500">•</span><span>矿池有效期 45 天，每次获得奖励后重置计时</span></li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500">•</span><span>矿池奖励上限为净存款的 2 倍</span></li>
+                  <li className="flex items-start gap-2"><span className="text-amber-500">•</span><span>超过 45 天未获得奖励，矿池资格自动失效</span></li>
                 </ul>
               </div>
             </>
@@ -103,12 +83,7 @@ const PoolPanel = ({ contract, userAddress, onClose }) => {
         </div>
         
         <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="w-full py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
-          >
-            关闭
-          </button>
+          <button onClick={onClose} className="w-full py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">关闭</button>
         </div>
       </div>
     </div>

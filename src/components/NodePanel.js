@@ -1,4 +1,3 @@
-// src/components/NodePanel.js
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 
@@ -15,45 +14,32 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
   useEffect(() => {
     const loadNodeData = async () => {
       if (!contract || !userAddress) return;
-      
       setLoading(true);
       try {
-        // 获取节点信息
         const nodeInfo = await contract.nodes(userAddress);
         const totalRewardedFromNode = ethers.utils.formatEther(nodeInfo.totalRewardedFromNode);
         const lastSnapshotTotal = ethers.utils.formatEther(nodeInfo.lastSnapshotTotal);
         
-        // 获取用户挖矿总奖励
         const userInfo = await contract.users(userAddress);
         const totalMiningRewarded = ethers.utils.formatEther(userInfo.totalMiningRewarded);
-        
-        // 计算本期挖矿贡献
         const periodContribution = parseFloat(totalMiningRewarded) - parseFloat(lastSnapshotTotal);
         
-        // 获取节点池信息
         const pendingNodeRewards = await contract.getNodePendingRewards();
         const pendingNodeRewardsFormatted = ethers.utils.formatEther(pendingNodeRewards);
         
-        // 获取节点总数和节点列表
         const nodeList = await contract.getNodeList();
         const nodeCount = nodeList.length;
         
-        // 获取所有节点的本期贡献，计算预估奖励
         let totalPeriodContribution = 0;
-        const nodeContributions = [];
-        
         for (let i = 0; i < nodeCount; i++) {
           const nodeAddr = nodeList[i];
           const nodeInfoItem = await contract.nodes(nodeAddr);
           const nodeUserInfo = await contract.users(nodeAddr);
           const nodeLastSnapshot = ethers.utils.formatEther(nodeInfoItem.lastSnapshotTotal);
           const nodeTotalMining = ethers.utils.formatEther(nodeUserInfo.totalMiningRewarded);
-          const contribution = parseFloat(nodeTotalMining) - parseFloat(nodeLastSnapshot);
-          nodeContributions.push(contribution);
-          totalPeriodContribution += contribution;
+          totalPeriodContribution += parseFloat(nodeTotalMining) - parseFloat(nodeLastSnapshot);
         }
         
-        // 计算预估奖励
         let estimatedNextReward = 0;
         const totalRewards = parseFloat(pendingNodeRewardsFormatted);
         if (totalRewards > 0 && nodeCount > 0) {
@@ -65,41 +51,33 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
           estimatedNextReward = equalShare + weightedShare;
         }
         
-        // 获取下次分配时间
         const lastDistributionTime = await contract.lastDistributionTime();
         const now = Math.floor(Date.now() / 1000);
         const nextDist = Number(lastDistributionTime) + 7 * 24 * 60 * 60;
         const timeToNext = nextDist > now ? nextDist - now : 0;
         
         setNodeData({
-          totalRewardedFromNode: totalRewardedFromNode,
+          totalRewardedFromNode,
           periodContribution: periodContribution.toFixed(2),
           estimatedNextReward: estimatedNextReward.toFixed(2),
           pendingNodeRewards: pendingNodeRewardsFormatted,
           timeToNextDistribution: timeToNext
         });
-        
       } catch (error) {
         console.error('加载节点数据失败:', error);
       } finally {
         setLoading(false);
       }
     };
-    
     loadNodeData();
   }, [contract, userAddress]);
 
-  const formatNumber = (num) => {
-    return parseFloat(num).toFixed(2);
-  };
-  
+  const formatNumber = (num) => parseFloat(num).toFixed(2);
   const formatTime = (seconds) => {
     if (seconds <= 0) return '即将分配';
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
-    if (days > 0) {
-      return `${days}天${hours}小时后`;
-    }
+    if (days > 0) return `${days}天${hours}小时后`;
     return `${hours}小时后`;
   };
 
@@ -122,7 +100,6 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
             </div>
           ) : (
             <>
-              {/* 节点池信息 */}
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4">
                 <p className="text-purple-800 text-sm font-medium mb-3">📊 节点池信息</p>
                 <div className="space-y-3">
@@ -137,7 +114,6 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
                 </div>
               </div>
               
-              {/* 我的收益 */}
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4">
                 <p className="text-green-800 text-sm font-medium mb-3">📈 我的收益</p>
                 <div className="space-y-3">
@@ -156,26 +132,13 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
                 </div>
               </div>
               
-              {/* 分配规则 */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-gray-700 text-sm font-medium mb-3">📋 节点分配规则</p>
                 <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-purple-500">•</span>
-                    <span>每 7 天分配一次节点奖励池</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-purple-500">•</span>
-                    <span>30% 奖励由所有节点平均分配</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-purple-500">•</span>
-                    <span>70% 奖励按节点本期挖矿贡献分配</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-purple-500">•</span>
-                    <span>挖矿贡献越高，奖励越多</span>
-                  </li>
+                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>每 7 天分配一次节点奖励池</span></li>
+                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>30% 奖励由所有节点平均分配</span></li>
+                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>70% 奖励按节点本期挖矿贡献分配</span></li>
+                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>挖矿贡献越高，奖励越多</span></li>
                 </ul>
               </div>
             </>
@@ -183,12 +146,7 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
         </div>
         
         <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="w-full py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
-          >
-            关闭
-          </button>
+          <button onClick={onClose} className="w-full py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">关闭</button>
         </div>
       </div>
     </div>
