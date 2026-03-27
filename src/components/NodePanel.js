@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import GovernancePanel from './GovernancePanel';
 
 const NodePanel = ({ contract, userAddress, onClose }) => {
   const [loading, setLoading] = useState(true);
+  const [isMember, setIsMember] = useState(false);
+  const [isProposer, setIsProposer] = useState(false);
   const [nodeData, setNodeData] = useState({
     totalRewardedFromNode: '0',
     periodContribution: '0',
@@ -16,6 +19,7 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
       if (!contract || !userAddress) return;
       setLoading(true);
       try {
+        // 获取节点信息
         const nodeInfo = await contract.nodes(userAddress);
         const totalRewardedFromNode = ethers.utils.formatEther(nodeInfo.totalRewardedFromNode);
         const lastSnapshotTotal = ethers.utils.formatEther(nodeInfo.lastSnapshotTotal);
@@ -63,6 +67,13 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
           pendingNodeRewards: pendingNodeRewardsFormatted,
           timeToNextDistribution: timeToNext
         });
+        
+        // 获取成员和提案人状态
+        const memberStatus = await contract.isMember(userAddress);
+        setIsMember(memberStatus);
+        const proposerStatus = await contract.isProposer(userAddress);
+        setIsProposer(proposerStatus);
+        
       } catch (error) {
         console.error('加载节点数据失败:', error);
       } finally {
@@ -141,6 +152,13 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
                   <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>挖矿贡献越高，奖励越多</span></li>
                 </ul>
               </div>
+              
+              <GovernancePanel 
+                contract={contract} 
+                userAddress={userAddress}
+                isMember={isMember}
+                isProposer={isProposer}
+              />
             </>
           )}
         </div>

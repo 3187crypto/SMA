@@ -17,6 +17,16 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState('switches');
+  
+  // 治理相关状态
+  const [memberAddress, setMemberAddress] = useState('');
+  const [removeMemberAddress, setRemoveMemberAddress] = useState('');
+  const [proposerAddress, setProposerAddress] = useState('');
+  const [removeProposerAddress, setRemoveProposerAddress] = useState('');
+  const [executeProposalId, setExecuteProposalId] = useState('');
+  const [cancelProposalId, setCancelProposalId] = useState('');
+  const [emergencyRecipient, setEmergencyRecipient] = useState('');
+  const [emergencyAmount, setEmergencyAmount] = useState('');
 
   const loadPendingData = async () => {
     if (!contract) return;
@@ -173,6 +183,148 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     }
   };
 
+  // 治理功能
+  const handleAddMember = async () => {
+    if (!memberAddress || !ethers.utils.isAddress(memberAddress)) {
+      showMessage('请输入有效的钱包地址', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await contract.addMember(memberAddress);
+      await tx.wait();
+      showMessage(`成功添加成员: ${memberAddress.slice(0,6)}...${memberAddress.slice(-4)}`);
+      setMemberAddress('');
+    } catch (error) {
+      showMessage('添加成员失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveMember = async () => {
+    if (!removeMemberAddress || !ethers.utils.isAddress(removeMemberAddress)) {
+      showMessage('请输入有效的钱包地址', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await contract.removeMember(removeMemberAddress);
+      await tx.wait();
+      showMessage(`成功移除成员: ${removeMemberAddress.slice(0,6)}...${removeMemberAddress.slice(-4)}`);
+      setRemoveMemberAddress('');
+    } catch (error) {
+      showMessage('移除成员失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddProposer = async () => {
+    if (!proposerAddress || !ethers.utils.isAddress(proposerAddress)) {
+      showMessage('请输入有效的钱包地址', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await contract.addProposer(proposerAddress);
+      await tx.wait();
+      showMessage(`成功添加提案人: ${proposerAddress.slice(0,6)}...${proposerAddress.slice(-4)}`);
+      setProposerAddress('');
+    } catch (error) {
+      showMessage('添加提案人失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveProposer = async () => {
+    if (!removeProposerAddress || !ethers.utils.isAddress(removeProposerAddress)) {
+      showMessage('请输入有效的钱包地址', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await contract.removeProposer(removeProposerAddress);
+      await tx.wait();
+      showMessage(`成功移除提案人: ${removeProposerAddress.slice(0,6)}...${removeProposerAddress.slice(-4)}`);
+      setRemoveProposerAddress('');
+    } catch (error) {
+      showMessage('移除提案人失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExecuteProposal = async () => {
+    if (!executeProposalId || parseInt(executeProposalId) < 0) {
+      showMessage('请输入有效的提案ID', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await contract.executeProposal(parseInt(executeProposalId));
+      await tx.wait();
+      showMessage(`成功执行提案 #${executeProposalId}`);
+      setExecuteProposalId('');
+    } catch (error) {
+      showMessage('执行提案失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelProposal = async () => {
+    if (!cancelProposalId || parseInt(cancelProposalId) < 0) {
+      showMessage('请输入有效的提案ID', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await contract.cancelProposal(parseInt(cancelProposalId));
+      await tx.wait();
+      showMessage(`成功取消提案 #${cancelProposalId}`);
+      setCancelProposalId('');
+    } catch (error) {
+      showMessage('取消提案失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmergencyWithdraw = async () => {
+    if (!emergencyRecipient || !ethers.utils.isAddress(emergencyRecipient)) {
+      showMessage('请输入有效的接收地址', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const amount = emergencyAmount ? ethers.utils.parseEther(emergencyAmount) : 0;
+      const tx = await contract.emergencyWithdraw(emergencyRecipient, amount);
+      await tx.wait();
+      showMessage(`紧急提款成功，接收方: ${emergencyRecipient.slice(0,6)}...`);
+      setEmergencyRecipient('');
+      setEmergencyAmount('');
+    } catch (error) {
+      showMessage('紧急提款失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRevokeEmergency = async () => {
+    setLoading(true);
+    try {
+      const tx = await contract.revokeEmergencyPrivilege();
+      await tx.wait();
+      showMessage('紧急权限已永久撤销');
+    } catch (error) {
+      showMessage('撤销紧急权限失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const showMessage = (msg, type = 'success') => {
     setMessage({ text: msg, type });
     setTimeout(() => setMessage(null), 3000);
@@ -230,6 +382,12 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
             className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'nodes' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
           >
             🌟 节点
+          </button>
+          <button
+            onClick={() => setActiveTab('governance')}
+            className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'governance' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
+          >
+            🗳️ 治理
           </button>
         </div>
 
@@ -409,6 +567,104 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                 <p className="text-gray-500 text-sm mt-3 text-center">
                   SMA 奖励将按节点贡献分配
                 </p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'governance' && (
+            <div className="bg-gray-800 rounded-xl p-4 space-y-4">
+              <div>
+                <h4 className="text-white font-medium mb-3">成员管理</h4>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    placeholder="成员地址"
+                    className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
+                    value={memberAddress}
+                    onChange={(e) => setMemberAddress(e.target.value)}
+                  />
+                  <button onClick={handleAddMember} className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm">添加</button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="成员地址"
+                    className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
+                    value={removeMemberAddress}
+                    onChange={(e) => setRemoveMemberAddress(e.target.value)}
+                  />
+                  <button onClick={handleRemoveMember} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">移除</button>
+                </div>
+              </div>
+              
+              <div className="border-t border-gray-700 pt-3">
+                <h4 className="text-white font-medium mb-3">提案人管理</h4>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    placeholder="提案人地址"
+                    className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
+                    value={proposerAddress}
+                    onChange={(e) => setProposerAddress(e.target.value)}
+                  />
+                  <button onClick={handleAddProposer} className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm">添加</button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="提案人地址"
+                    className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
+                    value={removeProposerAddress}
+                    onChange={(e) => setRemoveProposerAddress(e.target.value)}
+                  />
+                  <button onClick={handleRemoveProposer} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">移除</button>
+                </div>
+              </div>
+              
+              <div className="border-t border-gray-700 pt-3">
+                <h4 className="text-white font-medium mb-3">提案管理</h4>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="number"
+                    placeholder="提案ID"
+                    className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
+                    value={executeProposalId}
+                    onChange={(e) => setExecuteProposalId(e.target.value)}
+                  />
+                  <button onClick={handleExecuteProposal} className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm">执行</button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="提案ID"
+                    className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
+                    value={cancelProposalId}
+                    onChange={(e) => setCancelProposalId(e.target.value)}
+                  />
+                  <button onClick={handleCancelProposal} className="px-3 py-2 bg-orange-600 text-white rounded-lg text-sm">取消</button>
+                </div>
+              </div>
+              
+              <div className="border-t border-gray-700 pt-3">
+                <h4 className="text-white font-medium mb-3">紧急权限</h4>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    placeholder="接收地址"
+                    className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
+                    value={emergencyRecipient}
+                    onChange={(e) => setEmergencyRecipient(e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    placeholder="金额 (0=全部)"
+                    className="w-24 p-2 rounded-lg bg-gray-700 text-white text-sm"
+                    value={emergencyAmount}
+                    onChange={(e) => setEmergencyAmount(e.target.value)}
+                  />
+                  <button onClick={handleEmergencyWithdraw} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">提款</button>
+                </div>
+                <button onClick={handleRevokeEmergency} className="w-full py-2 bg-gray-600 text-white rounded-lg text-sm">撤销紧急权限</button>
               </div>
             </div>
           )}
