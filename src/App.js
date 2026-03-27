@@ -18,10 +18,13 @@ import { saveBindingToCloud } from './services/teamStats';
 import TeamView from './components/TeamView';
 import OwnerMenu from './components/OwnerMenu';
 import { loadConfig } from './services/ownerConfig';
+import { translations, getCurrentLanguage, t } from './i18n';
+import LanguageSwitcher from './components/LanguageSwitcher';
 
 function App() {
   const { active, account, library, activate, deactivate } = useWeb3React();
   const [manualAccount, setManualAccount] = useState(null);
+  const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
   
   const [userInfo, setUserInfo] = useState({
     depositBase: '0',
@@ -69,6 +72,13 @@ function App() {
   const isOwner = currentAccount && ownerAddress && currentAccount.toLowerCase() === ownerAddress.toLowerCase();
 
   const submittingRef = useRef({});
+
+  // 翻译辅助函数
+  const tr = (key) => t(currentLang, key);
+
+  const handleLanguageChange = (langCode) => {
+    setCurrentLang(langCode);
+  };
 
   // 缓存合约实例
   const miningContract = useMemo(() => {
@@ -168,7 +178,7 @@ function App() {
       // 支持数组和对象两种访问方式
       const depositBase = info.depositBase || info[0];
       const remainingDeposit = info.remainingDeposit || info[1];
-      const pendingReward = info.pendingReward || info[3];
+      const pendingRewardVal = info.pendingReward || info[3];
       const cumulativeDeposited = info.cumulativeDeposited || info[4];
       const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
       const totalRewarded = info.totalMiningRewarded || info[6];
@@ -176,7 +186,7 @@ function App() {
       const formattedInfo = {
         depositBase: ethers.utils.formatEther(depositBase || 0),
         remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
-        pendingReward: ethers.utils.formatEther(pendingReward || 0),
+        pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
         cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
         cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
         totalRewarded: ethers.utils.formatEther(totalRewarded || 0)
@@ -336,7 +346,7 @@ function App() {
         document.body.removeChild(textarea);
       }
       
-      btn.innerText = '✓ 已复制';
+      btn.innerText = tr('copied');
       btn.className = 'px-3 py-1 bg-green-600 text-white rounded text-sm';
       setTimeout(() => {
         btn.innerText = originalText;
@@ -344,7 +354,7 @@ function App() {
       }, 1500);
       
     } catch (error) {
-      alert('复制失败，请手动复制：' + textStr);
+      alert(tr('copyFailed') + textStr);
     }
   };
 
@@ -361,12 +371,12 @@ function App() {
       await approveTx.wait();
       const tx = await miningContract.deposit(amount);
       await tx.wait();
-      alert('存款成功！');
+      alert(tr('depositSuccess'));
       loadUserData();
       loadBalances();
       setDepositAmount('');
     } catch (error) {
-      alert('存款失败：' + error.message);
+      alert(tr('depositFailed') + error.message);
     } finally {
       setDepositLoading(false);
       submittingRef.current.deposit = false;
@@ -384,12 +394,12 @@ function App() {
       const amount = ethers.utils.parseEther(withdrawAmount);
       const tx = await miningContract.withdraw(amount);
       await tx.wait();
-      alert('提款成功！');
+      alert(tr('withdrawSuccess'));
       loadUserData();
       loadBalances();
       setWithdrawAmount('');
     } catch (error) {
-      alert('提款失败：' + error.message);
+      alert(tr('withdrawFailed') + error.message);
     } finally {
       setWithdrawLoading(false);
       submittingRef.current.withdraw = false;
@@ -405,11 +415,11 @@ function App() {
     try {
       const tx = await miningContract.claimReward();
       await tx.wait();
-      alert('领取奖励成功！');
+      alert(tr('claimSuccess'));
       loadUserData();
       loadBalances();
     } catch (error) {
-      alert('领取奖励失败：' + error.message);
+      alert(tr('claimFailed') + error.message);
     } finally {
       setClaimLoading(false);
       submittingRef.current.claim = false;
@@ -419,7 +429,7 @@ function App() {
   const handleBind = async () => {
     if (submittingRef.current.bind) return;
     if (!ethers.utils.isAddress(bindAddress)) {
-      alert('请输入有效地址');
+      alert(tr('pleaseEnterValidAddress'));
       return;
     }
     
@@ -436,14 +446,14 @@ function App() {
       await saveBindingToCloud(window._currentUserAddress, bindAddress, receipt.blockNumber);
       console.log('✅ 绑定成功');
       
-      alert('绑定推荐成功！');
+      alert(tr('bindSuccess'));
       setBindAddress('');
       await updateTeamData(miningContract);
       saveCache();
       loadUserData();
     } catch (error) {
       console.error('绑定推荐失败:', error);
-      alert('绑定推荐失败：' + error.message);
+      alert(tr('bindFailed') + error.message);
     } finally {
       setBindLoading(false);
       submittingRef.current.bind = false;
@@ -461,10 +471,10 @@ function App() {
       const receipt = await tx.wait();
       const event = receipt.events.find(e => e.event === 'InviteCodeGenerated');
       if (event) setMyInviteCode(event.args.inviteCode.toString());
-      alert('生成邀请码成功！');
+      alert(tr('generateCodeSuccess'));
       loadUserData();
     } catch (error) {
-      alert('生成邀请码失败：' + error.message);
+      alert(tr('generateCodeFailed') + error.message);
     } finally {
       setInviteLoading(false);
       submittingRef.current.invite = false;
@@ -472,7 +482,7 @@ function App() {
   };
 
   const handleRegisterWithInvite = async () => {
-    if (!inviteCode) return alert('请输入邀请码');
+    if (!inviteCode) return alert(tr('pleaseEnterInviteCode'));
     
     submittingRef.current.register = true;
     setInviteLoading(true);
@@ -490,7 +500,7 @@ function App() {
         console.log('✅ 绑定成功');
       }
       
-      alert('绑定推荐成功！');
+      alert(tr('bindSuccess'));
       setShowInviteModal(false);
       setInviteCode('');
       
@@ -505,7 +515,7 @@ function App() {
       loadUserData();
     } catch (error) {
       console.error('绑定推荐失败:', error);
-      alert('绑定推荐失败：' + error.message);
+      alert(tr('bindFailed') + error.message);
     } finally {
       setInviteLoading(false);
       submittingRef.current.register = false;
@@ -520,12 +530,12 @@ function App() {
   const handleNodePayment = async () => {
     const checkbox = document.getElementById('nodeAgree');
     if (!checkbox || !checkbox.checked) {
-      alert('请先阅读并同意节点权益说明');
+      alert(tr('pleaseAgreeTerms'));
       return;
     }
     
     if (!currentAccount) {
-      alert('请先连接钱包');
+      alert(tr('pleaseConnectWallet'));
       return;
     }
     
@@ -545,14 +555,14 @@ function App() {
       await transferTx.wait();
       console.log('✅ 支付成功');
       
-      alert('🎉 恭喜您成为SMA节点！节点权益将自动生效。');
+      alert(tr('nodeSuccess'));
       setShowNodeModal(false);
-      loadUserData(); // 刷新用户状态
-      loadBalances(); // 刷新余额
+      loadUserData();
+      loadBalances();
       
     } catch (error) {
       console.error('支付失败:', error);
-      alert('支付失败：' + error.message);
+      alert(tr('paymentFailed') + error.message);
     } finally {
       setNodePaymentLoading(false);
     }
@@ -569,7 +579,7 @@ function App() {
       <div className="max-w-4xl mx-auto px-4">
         <header className="bg-white rounded-2xl shadow-xl p-6 mb-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-800 mb-4 md:mb-0">⛏️ 比特超级矿工</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-4 md:mb-0">{tr('appName')}</h1>
             <div className="flex items-center space-x-4">
               {!shouldShowContent ? (
                 <>
@@ -588,12 +598,12 @@ function App() {
                     </span>
                     {isPool && (
                       <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full flex items-center">
-                        ⛏️ 矿池
+                        ⛏️ {tr('miningPool')}
                       </span>
                     )}
                     {isNode && (
                       <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full flex items-center">
-                        🌟 节点
+                        🌟 {tr('nodeBadge')}
                       </span>
                     )}
                   </div>
@@ -605,7 +615,8 @@ function App() {
                       ⚙️
                     </button>
                   )}
-                  <button onClick={disconnectWallet} className="px-4 py-2 bg-red-500 text-white rounded-lg">断开</button>
+                  <LanguageSwitcher onLanguageChange={handleLanguageChange} />
+                  <button onClick={disconnectWallet} className="px-4 py-2 bg-red-500 text-white rounded-lg">{tr('disconnect')}</button>
                 </div>
               )}
             </div>
@@ -617,19 +628,19 @@ function App() {
             {featureConfig.features.showPrice && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
                 <div className="bg-white rounded-xl shadow-lg p-4">
-                  <h3 className="text-gray-500 text-sm">USDT余额</h3>
+                  <h3 className="text-gray-500 text-sm">{tr('usdtBalance')}</h3>
                   <p className="text-base md:text-xl font-bold">{parseFloat(usdtBalance).toFixed(4)}</p>
                 </div>
                 <div className="bg-white rounded-xl shadow-lg p-4">
-                  <h3 className="text-gray-500 text-sm">SMA余额</h3>
+                  <h3 className="text-gray-500 text-sm">{tr('smaBalance')}</h3>
                   <p className="text-base md:text-xl font-bold">{parseFloat(cultureBalance).toFixed(4)}</p>
                 </div>
                 <div className="bg-white rounded-xl shadow-lg p-4">
-                  <h3 className="text-gray-500 text-sm">当前价格</h3>
+                  <h3 className="text-gray-500 text-sm">{tr('currentPrice')}</h3>
                   <p className="text-base md:text-xl font-bold">{parseFloat(currentPrice).toFixed(6)} USDT</p>
                 </div>
                 <div className="bg-white rounded-xl shadow-lg p-4">
-                  <h3 className="text-gray-500 text-sm">市场价格</h3>
+                  <h3 className="text-gray-500 text-sm">{tr('marketPrice')}</h3>
                   <p className="text-base md:text-xl font-bold">{marketPrice !== '0' ? parseFloat(marketPrice).toFixed(6) : '--'} USDT</p>
                 </div>
               </div>
@@ -638,9 +649,9 @@ function App() {
             {featureConfig.features.showMinted && (
               <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-6 md:mb-8">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold">SMA进度</h2>
+                  <h2 className="text-xl font-semibold">{tr('smaProgress')}</h2>
                   <div className="text-sm text-gray-500">
-                    总发行: 0 / 21,000,000
+                    {tr('totalSupply')}: 0 / 21,000,000
                   </div>
                 </div>
               </div>
@@ -648,16 +659,16 @@ function App() {
 
             <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-6 md:mb-8">
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">邀请码</h2>
+                <h2 className="text-xl font-semibold">{tr('inviteCode')}</h2>
                 {!myInviteCode ? (
                   <button onClick={handleGenerateInviteCode} disabled={inviteLoading} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">
-                    {inviteLoading ? '生成中...' : '生成邀请码'}
+                    {inviteLoading ? tr('generating') : tr('generateInviteCode')}
                   </button>
                 ) : (
                   <div className="flex items-center space-x-2">
                     <span className="font-mono text-lg font-bold text-blue-600">{myInviteCode}</span>
                     <button onClick={() => copyToClipboard(myInviteCode)} className="px-3 py-1 bg-gray-200 hover:bg-gray-300 transition text-sm">
-                      复制
+                      {tr('copy')}
                     </button>
                   </div>
                 )}
@@ -669,37 +680,37 @@ function App() {
 
             <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-6 md:mb-8">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">我的资产</h2>
+                <h2 className="text-xl font-semibold">{tr('myAssets')}</h2>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => { loadUserData(); loadBalances(); }}
                     className="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300"
                   >
-                    🔄 刷新
+                    🔄 {tr('refresh')}
                   </button>
                   <button 
                     onClick={() => setShowNodeModal(true)}
                     className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm hover:shadow-lg transition-all"
                   >
-                    🌟 成为节点
+                    🌟 {tr('becomeNode')}
                   </button>
                   {featureConfig.features.showReferral && (
                     <button onClick={() => { setSelectedUser(currentAccount); setShowTeamView(true); }} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm flex items-center">
-                      👥 团队网络
+                      👥 {tr('teamNetwork')}
                     </button>
                   )}
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div><p className="text-gray-500 text-xs">存款本金</p><p className="text-base font-medium">{parseFloat(userInfo.depositBase).toFixed(4)}</p></div>
-                <div><p className="text-gray-500 text-xs">剩余本金</p><p className="text-base font-medium">{parseFloat(userInfo.remainingDeposit).toFixed(4)}</p></div>
-                <div><p className="text-gray-500 text-xs">待领取</p><p className="text-base font-medium text-green-600">{parseFloat(pendingReward).toFixed(4)}</p></div>
-                <div><p className="text-gray-500 text-xs">累计奖励</p><p className="text-base font-medium">{parseFloat(userInfo.totalRewarded).toFixed(4)}</p></div>
+                <div><p className="text-gray-500 text-xs">{tr('depositPrincipal')}</p><p className="text-base font-medium">{parseFloat(userInfo.depositBase).toFixed(4)}</p></div>
+                <div><p className="text-gray-500 text-xs">{tr('remainingPrincipal')}</p><p className="text-base font-medium">{parseFloat(userInfo.remainingDeposit).toFixed(4)}</p></div>
+                <div><p className="text-gray-500 text-xs">{tr('pendingReward')}</p><p className="text-base font-medium text-green-600">{parseFloat(pendingReward).toFixed(4)}</p></div>
+                <div><p className="text-gray-500 text-xs">{tr('totalReward')}</p><p className="text-base font-medium">{parseFloat(userInfo.totalRewarded).toFixed(4)}</p></div>
               </div>
               {parseFloat(pendingReward) > 0 && featureConfig.features.claim && (
                 <div className="mt-4 flex justify-end">
                   <button onClick={handleClaim} disabled={claimLoading || isButtonDisabled('claim')} className="px-6 py-2 bg-green-600 text-white rounded-lg text-sm">
-                    {featureConfig.globalMaintenance ? '维护中' : claimLoading ? '领取中...' : '领取奖励'}
+                    {featureConfig.globalMaintenance ? tr('maintenance') : claimLoading ? tr('claiming') : tr('claimReward')}
                   </button>
                 </div>
               )}
@@ -707,27 +718,27 @@ function App() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
-                <h3 className="text-lg font-semibold mb-4">存款</h3>
-                <input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="输入数量" className="w-full p-3 border rounded-lg mb-4 text-sm" />
+                <h3 className="text-lg font-semibold mb-4">{tr('deposit')}</h3>
+                <input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder={tr('enterAmount')} className="w-full p-3 border rounded-lg mb-4 text-sm" />
                 <button onClick={handleDeposit} disabled={depositLoading || isButtonDisabled('deposit')} className="w-full py-3 bg-blue-600 text-white rounded-lg text-sm">
-                  {featureConfig.globalMaintenance ? '维护中' : depositLoading ? '存款中...' : '存款'}
+                  {featureConfig.globalMaintenance ? tr('maintenance') : depositLoading ? tr('depositing') : tr('deposit')}
                 </button>
               </div>
               <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
-                <h3 className="text-lg font-semibold mb-4">提款</h3>
-                <input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="输入数量" className="w-full p-3 border rounded-lg mb-4 text-sm" />
+                <h3 className="text-lg font-semibold mb-4">{tr('withdraw')}</h3>
+                <input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder={tr('enterAmount')} className="w-full p-3 border rounded-lg mb-4 text-sm" />
                 <button onClick={handleWithdraw} disabled={withdrawLoading || isButtonDisabled('withdraw')} className="w-full py-3 bg-yellow-600 text-white rounded-lg text-sm">
-                  {featureConfig.globalMaintenance ? '维护中' : withdrawLoading ? '提款中...' : '提款'}
+                  {featureConfig.globalMaintenance ? tr('maintenance') : withdrawLoading ? tr('withdrawing') : tr('withdraw')}
                 </button>
               </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mt-4 md:mt-6">
-              <h3 className="text-lg font-semibold mb-4">绑定推荐（需支付0.001 BNB）</h3>
+              <h3 className="text-lg font-semibold mb-4">{tr('bindReferralDesc')}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" value={bindAddress} onChange={(e) => setBindAddress(e.target.value)} placeholder="输入地址" className="p-3 border rounded-lg text-sm" />
+                <input type="text" value={bindAddress} onChange={(e) => setBindAddress(e.target.value)} placeholder={tr('enterAddress')} className="p-3 border rounded-lg text-sm" />
                 <button onClick={handleBind} disabled={bindLoading || isButtonDisabled('bind')} className="px-8 py-3 bg-purple-600 text-white rounded-lg text-sm">
-                  {featureConfig.globalMaintenance ? '维护中' : bindLoading ? '绑定中...' : '绑定推荐'}
+                  {featureConfig.globalMaintenance ? tr('maintenance') : bindLoading ? tr('binding') : tr('bindReferral')}
                 </button>
               </div>
             </div>
@@ -737,12 +748,12 @@ function App() {
         {showInviteModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-              <h2 className="text-2xl font-bold mb-2">绑定推荐</h2>
-              <p className="text-gray-600 mb-4">输入邀请码，绑定推荐关系</p>
-              <input type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} placeholder="请输入8位邀请码" className="w-full p-3 border rounded-lg mb-4 text-lg" />
+              <h2 className="text-2xl font-bold mb-2">{tr('bindReferralModal')}</h2>
+              <p className="text-gray-600 mb-4">{tr('enterInviteCode')}</p>
+              <input type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} placeholder={tr('inviteCodePlaceholder')} className="w-full p-3 border rounded-lg mb-4 text-lg" />
               <div className="flex flex-col gap-3">
-                <button onClick={handleRegisterWithInvite} disabled={inviteLoading || !inviteCode} className="py-3 bg-blue-600 text-white rounded-lg">绑定</button>
-                <button onClick={handleSkipInvite} className="py-3 bg-gray-500 text-white rounded-lg">暂不绑定</button>
+                <button onClick={handleRegisterWithInvite} disabled={inviteLoading || !inviteCode} className="py-3 bg-blue-600 text-white rounded-lg">{tr('bind')}</button>
+                <button onClick={handleSkipInvite} className="py-3 bg-gray-500 text-white rounded-lg">{tr('skip')}</button>
               </div>
             </div>
           </div>
@@ -753,42 +764,42 @@ function App() {
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto shadow-2xl">
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-800">🌟 成为SMA节点</h2>
+                <h2 className="text-xl font-bold text-gray-800">{tr('nodeTitle')}</h2>
                 <button onClick={() => setShowNodeModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
               </div>
               
               <div className="p-6 space-y-4">
                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                  <p className="text-amber-800 text-sm font-medium mb-2">💎 节点权益：</p>
+                  <p className="text-amber-800 text-sm font-medium mb-2">{tr('nodeBenefits')}</p>
                   <ul className="space-y-2 text-sm text-gray-700">
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500">✅</span>
-                      <span>交易税分成：每笔买卖的60%税收直接分给节点</span>
+                      <span>{tr('nodeBenefit1')}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500">✅</span>
-                      <span>挖矿业绩奖励：节点按挖矿量获得额外70%奖励池</span>
+                      <span>{tr('nodeBenefit2')}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500">✅</span>
-                      <span>被动收入：无需操作，自动领取</span>
+                      <span>{tr('nodeBenefit3')}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500">✅</span>
-                      <span>稀缺权益：仅限99个节点，先到先得</span>
+                      <span>{tr('nodeBenefit4')}</span>
                     </li>
                   </ul>
                 </div>
                 
                 <div className="bg-blue-50 rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-blue-600">1000 USDT</p>
-                  <p className="text-xs text-gray-500 mt-1">锁定节点身份，终身享受平台收益</p>
+                  <p className="text-2xl font-bold text-blue-600">{tr('nodePrice')}</p>
+                  <p className="text-xs text-gray-500 mt-1">{tr('nodeDesc')}</p>
                 </div>
                 
                 <div className="bg-gray-50 rounded-xl p-4">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" id="nodeAgree" className="w-5 h-5 accent-amber-500" />
-                    <span className="text-sm text-gray-700">我已阅读并同意成为SMA节点，确认支付1000 USDT</span>
+                    <span className="text-sm text-gray-700">{tr('nodeAgree')}</span>
                   </label>
                 </div>
                 
@@ -797,11 +808,11 @@ function App() {
                   disabled={nodePaymentLoading}
                   className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
                 >
-                  {nodePaymentLoading ? '处理中...' : '💎 立即申请，支付1000 USDT'}
+                  {nodePaymentLoading ? tr('nodeProcessing') : tr('nodeApply')}
                 </button>
                 
                 <p className="text-xs text-gray-400 text-center pt-2">
-                  支付USDT将发送至平台节点地址<br/>
+                  {tr('nodeAddressLabel')}<br/>
                   <span className="font-mono">0x1B3C7af4dD3A3029d40f00fBe639466A5EEFbAE6</span>
                 </p>
               </div>
