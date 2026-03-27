@@ -669,7 +669,7 @@ function App() {
                 )}
               </div>
               <div className="mt-3 text-center text-xs text-gray-400">
-                比特超级矿工 · SMA · www.culture2006.com
+                比特超级矿工 · SMA
               </div>
             </div>
 
