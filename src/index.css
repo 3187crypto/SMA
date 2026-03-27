@@ -109,3 +109,63 @@ code {
 .overflow-hidden {
   overflow: hidden;
 }
+/* ========================================
+   矿工背景图片样式
+   ======================================== */
+
+/* 背景图片层 */
+.mining-bg-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/images/mining-bg.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 半透明遮罩层 - 确保文字可读 */
+.mining-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 内容区域 - 在背景之上 */
+.content-wrapper {
+  position: relative;
+  z-index: 2;
+}
+
+/* 卡片背景微调（保持可读性） */
+.glass-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(2px);
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 768px) {
+  .mining-overlay {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  
+  .glass-card {
+    background: rgba(255, 255, 255, 0.94);
+  }
+}
+
+/* 低端设备减少遮罩 */
+@media (prefers-reduced-motion: reduce) {
+  .mining-overlay {
+    background: rgba(0, 0, 0, 0.75);
+  }
+}

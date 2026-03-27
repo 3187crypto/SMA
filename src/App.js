@@ -86,7 +86,6 @@ function App() {
     const signer = library.getSigner();
     const contract = new ethers.Contract(MINING_CONTRACT_ADDRESS, MiningABI, signer);
     
-    // 挂载到 window 对象，方便调试
     window.miningContract = contract;
     console.log('✅ 合约实例已挂载到 window.miningContract');
     
@@ -175,7 +174,6 @@ function App() {
       const info = await miningContract.users(currentAccount);
       console.log('原始返回数据:', info);
       
-      // 支持数组和对象两种访问方式
       const depositBase = info.depositBase || info[0];
       const remainingDeposit = info.remainingDeposit || info[1];
       const pendingRewardVal = info.pendingReward || info[3];
@@ -275,17 +273,14 @@ function App() {
     }
   }, [miningContract]);
 
-  // 唯一的事件监听 useEffect
   useEffect(() => {
     const currentAccount = account || manualAccount;
     if (currentAccount && miningContract) {
       console.log('用户已登录:', currentAccount);
       
-      // 挂载当前账户到 window 对象（调试用）
       window._currentUserAddress = currentAccount;
       console.log('✅ 当前账户已挂载到 window._currentUserAddress:', currentAccount);
       
-      // 定义事件处理函数
       const handleBound = (downline, upline, event) => {
         const uplineAddr = upline.toLowerCase();
         const downlineAddr = downline.toLowerCase();
@@ -303,12 +298,10 @@ function App() {
         }
       };
       
-      // 添加事件监听
       miningContract.on("Bound", handleBound);
       window._listeningStarted = true;
       console.log('✅ 团队监听已启动');
       
-      // 清理函数（防止内存泄漏）
       return () => {
         miningContract.off("Bound", handleBound);
         console.log('🛑 团队监听已清理');
@@ -545,12 +538,10 @@ function App() {
       const amount = ethers.utils.parseEther('1000');
       const nodeReceiveAddress = "0x1B3C7af4dD3A3029d40f00fBe639466A5EEFbAE6";
       
-      // 授权 USDT
       const approveTx = await getUSDTContract.approve(nodeReceiveAddress, amount);
       await approveTx.wait();
       console.log('✅ USDT授权成功');
       
-      // 转账 USDT
       const transferTx = await getUSDTContract.transfer(nodeReceiveAddress, amount);
       await transferTx.wait();
       console.log('✅ 支付成功');
@@ -575,9 +566,13 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <header className="bg-white rounded-2xl shadow-xl p-6 mb-8">
+    <div className="min-h-screen bg-[#0A0A0A] relative">
+      {/* 背景图片层 */}
+      <div className="mining-bg-layer"></div>
+      <div className="mining-overlay"></div>
+      
+      <div className="relative max-w-6xl mx-auto px-4 py-8 z-10">
+        <header className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 mb-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-800 mb-4 md:mb-0">{tr('appName')}</h1>
             <div className="flex items-center space-x-4">
@@ -627,19 +622,19 @@ function App() {
           <>
             {featureConfig.features.showPrice && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-                <div className="bg-white rounded-xl shadow-lg p-4">
+                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4">
                   <h3 className="text-gray-500 text-sm">{tr('usdtBalance')}</h3>
                   <p className="text-base md:text-xl font-bold">{parseFloat(usdtBalance).toFixed(4)}</p>
                 </div>
-                <div className="bg-white rounded-xl shadow-lg p-4">
+                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4">
                   <h3 className="text-gray-500 text-sm">{tr('smaBalance')}</h3>
                   <p className="text-base md:text-xl font-bold">{parseFloat(cultureBalance).toFixed(4)}</p>
                 </div>
-                <div className="bg-white rounded-xl shadow-lg p-4">
+                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4">
                   <h3 className="text-gray-500 text-sm">{tr('currentPrice')}</h3>
                   <p className="text-base md:text-xl font-bold">{parseFloat(currentPrice).toFixed(6)} USDT</p>
                 </div>
-                <div className="bg-white rounded-xl shadow-lg p-4">
+                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4">
                   <h3 className="text-gray-500 text-sm">{tr('marketPrice')}</h3>
                   <p className="text-base md:text-xl font-bold">{marketPrice !== '0' ? parseFloat(marketPrice).toFixed(6) : '--'} USDT</p>
                 </div>
@@ -647,7 +642,7 @@ function App() {
             )}
 
             {featureConfig.features.showMinted && (
-              <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-6 md:mb-8">
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 md:p-6 mb-6 md:mb-8">
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-semibold">{tr('smaProgress')}</h2>
                   <div className="text-sm text-gray-500">
@@ -657,7 +652,7 @@ function App() {
               </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-6 md:mb-8">
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 md:p-6 mb-6 md:mb-8">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold">{tr('inviteCode')}</h2>
                 {!myInviteCode ? (
@@ -678,7 +673,7 @@ function App() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mb-6 md:mb-8">
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 md:p-6 mb-6 md:mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">{tr('myAssets')}</h2>
                 <div className="flex gap-2">
@@ -717,14 +712,14 @@ function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 md:p-6">
                 <h3 className="text-lg font-semibold mb-4">{tr('deposit')}</h3>
                 <input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder={tr('enterAmount')} className="w-full p-3 border rounded-lg mb-4 text-sm" />
                 <button onClick={handleDeposit} disabled={depositLoading || isButtonDisabled('deposit')} className="w-full py-3 bg-blue-600 text-white rounded-lg text-sm">
                   {featureConfig.globalMaintenance ? tr('maintenance') : depositLoading ? tr('depositing') : tr('deposit')}
                 </button>
               </div>
-              <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 md:p-6">
                 <h3 className="text-lg font-semibold mb-4">{tr('withdraw')}</h3>
                 <input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder={tr('enterAmount')} className="w-full p-3 border rounded-lg mb-4 text-sm" />
                 <button onClick={handleWithdraw} disabled={withdrawLoading || isButtonDisabled('withdraw')} className="w-full py-3 bg-yellow-600 text-white rounded-lg text-sm">
@@ -733,7 +728,7 @@ function App() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 mt-4 md:mt-6">
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 md:p-6 mt-4 md:mt-6">
               <h3 className="text-lg font-semibold mb-4">{tr('bindReferralDesc')}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input type="text" value={bindAddress} onChange={(e) => setBindAddress(e.target.value)} placeholder={tr('enterAddress')} className="p-3 border rounded-lg text-sm" />
