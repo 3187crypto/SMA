@@ -13,7 +13,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
     
     setLoading(true);
     try {
-      console.log('加载福缘谱，福址:', userAddress);
+      console.log('加载团队树，地址:', userAddress);
       
       const stats = await getTeamStats(contract, userAddress);
       const downlines = await getDirectDownlines(contract, userAddress);
@@ -22,7 +22,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
       setDirectDownlines(downlines);
       
     } catch (error) {
-      console.error('加载福缘谱失败', error);
+      console.error('加载团队树失败', error);
     } finally {
       setLoading(false);
     }
@@ -30,10 +30,10 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
 
   useEffect(() => {
     const handleTeamUpdate = (event) => {
-      console.log('🎉 检测到福缘更新，重新加载...', event.detail);
+      console.log('🎉 检测到团队更新，重新加载...', event.detail);
       
       if (event.detail?.upline?.toLowerCase() === userAddress?.toLowerCase()) {
-        console.log('当前福址是上缘，立即刷新福缘谱');
+        console.log('当前地址是上级，立即刷新团队树');
         loadTeamData();
       }
     };
@@ -54,7 +54,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (contract && userAddress) {
-        console.log('定时刷新福缘谱...');
+        console.log('定时刷新团队树...');
         loadTeamData();
       }
     }, 30000);
@@ -73,7 +73,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
         const subMembers = await getDirectDownlines(contract, address);
         setSubMembersMap(prev => ({ ...prev, [address]: subMembers }));
       } catch (error) {
-        console.error('加载福缘人失败', error);
+        console.error('加载团队成员失败', error);
       }
     }
   };
@@ -106,16 +106,16 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
               </span>
               {isMemberPool && (
                 <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">
-                  ⛏️ 福池
+                  ⛏️ 矿池
                 </span>
               )}
               {isMemberNode && (
                 <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-800 text-xs rounded">
-                  🌟 福柱
+                  🌟 节点
                 </span>
               )}
               <span className="ml-2 text-xs text-gray-500">
-                (福缘人: {member.subCount || 0}人)
+                (团队成员: {member.subCount || 0}人)
               </span>
             </div>
           </div>
@@ -130,7 +130,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
             {subMembers.length > 0 ? (
               subMembers.map(subMember => renderMember(subMember, level + 1))
             ) : (
-              <div className="ml-8 text-sm text-gray-400 py-2">暂无福缘人</div>
+              <div className="ml-8 text-sm text-gray-400 py-2">暂无团队成员</div>
             )}
           </div>
         )}
@@ -144,10 +144,10 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
         
         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
           <div className="flex items-center">
-            <h2 className="text-2xl font-bold text-gray-800">福缘谱</h2>
+            <h2 className="text-2xl font-bold text-gray-800">团队树</h2>
             {poolManager?.isPool(userAddress) && (
               <span className="ml-3 px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full">
-                ⛏️ 福池
+                ⛏️ 矿池
               </span>
             )}
           </div>
@@ -159,13 +159,13 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
         <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="text-sm text-gray-500">总福缘</div>
+              <div className="text-sm text-gray-500">总奖励</div>
               <div className="text-2xl font-bold text-blue-600">
                 {loading ? '...' : teamStats.reward.toFixed(2)} USDT
               </div>
             </div>
             <div className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="text-sm text-gray-500">众福缘</div>
+              <div className="text-sm text-gray-500">团队成员</div>
               <div className="text-2xl font-bold text-purple-600">
                 {loading ? '...' : teamStats.count} 人
               </div>
@@ -177,7 +177,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
           {loading ? (
             <div className="text-center py-8 text-gray-500">
               <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-              载入福缘谱中...
+              加载团队树中...
             </div>
           ) : (
             <>
@@ -187,7 +187,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  暂无福缘人，快去结福缘吧！
+                  暂无团队成员，快去绑定推荐吧！
                 </div>
               )}
             </>
@@ -199,7 +199,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
             onClick={onClose}
             className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
           >
-            闭谱
+            关闭
           </button>
         </div>
       </div>

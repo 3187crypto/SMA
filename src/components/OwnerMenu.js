@@ -18,13 +18,12 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState('switches');
 
-  // 加载资金池数据
   const loadPendingData = async () => {
     if (!contract) return;
     try {
       const pending = await contract.getPendingStatus();
       setPendingUSDT(ethers.utils.formatEther(pending.pendingUSDT));
-      setPendingCULTURE(ethers.utils.formatEther(pending.pendingCULTURE));
+      setPendingCULTURE(ethers.utils.formatEther(pending.pendingSMA));
       setPendingBuyback(ethers.utils.formatEther(pending.pendingBuybackUSDT));
       
       try {
@@ -42,7 +41,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     loadPendingData();
     const interval = setInterval(loadPendingData, 10000);
     return () => clearInterval(interval);
-  }, [contract]);
+  }, [contract, loadPendingData]);
 
   const toggleFeature = (feature) => {
     const newConfig = {
@@ -179,15 +178,14 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  // 中国风功能名称
   const featureNames = {
-    deposit: '纳福',
-    withdraw: '取福',
-    claim: '领福',
-    bind: '结福缘',
-    showReferral: '福缘谱',
-    showPrice: '福基',
-    showMinted: '福缘总量'
+    deposit: '存款',
+    withdraw: '提款',
+    claim: '领取奖励',
+    bind: '绑定推荐',
+    showReferral: '团队树',
+    showPrice: '价格显示',
+    showMinted: '发行总量'
   };
 
   return (
@@ -201,61 +199,58 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       )}
       
       <div className="bg-gray-900 rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden mx-4">
-        {/* 头部 */}
         <div className="px-5 py-4 border-b border-gray-700 flex justify-between items-center">
-          <span className="text-white text-lg font-bold">👑 天官法印</span>
+          <span className="text-white text-lg font-bold">👑 管理员面板</span>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">✕</button>
         </div>
 
-        {/* Tab 切换 */}
         <div className="flex overflow-x-auto border-b border-gray-700">
           <button
             onClick={() => setActiveTab('switches')}
             className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'switches' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
           >
-            🎛️ 法门
+            🎛️ 功能开关
           </button>
           <button
             onClick={() => setActiveTab('funds')}
             className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'funds' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
           >
-            💰 福库
+            💰 资金池
           </button>
           <button
             onClick={() => setActiveTab('pools')}
             className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'pools' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
           >
-            ⛏️ 福池
+            ⛏️ 矿池
           </button>
           <button
             onClick={() => setActiveTab('nodes')}
             className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'nodes' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
           >
-            🌟 福柱
+            🌟 节点
           </button>
         </div>
 
         <div className="p-5 space-y-5 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
-          {/* 开关 Tab */}
           {activeTab === 'switches' && (
             <>
               <div className="bg-gray-800 rounded-xl p-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-white font-medium">🔧 闭福</span>
+                  <span className="text-white font-medium">🔧 全局维护</span>
                   <button
                     onClick={toggleMaintenance}
                     className={`px-4 py-2 rounded-lg text-sm ${config.globalMaintenance ? 'bg-red-600' : 'bg-green-600'} text-white`}
                   >
-                    {config.globalMaintenance ? '闭福中' : '开福'}
+                    {config.globalMaintenance ? '维护中' : '正常运行'}
                   </button>
                 </div>
                 {config.globalMaintenance && (
-                  <p className="text-yellow-400 text-sm mt-3">天官闭福，暂结福缘</p>
+                  <p className="text-yellow-400 text-sm mt-3">系统维护中，暂时关闭部分功能</p>
                 )}
               </div>
 
               <div className="bg-gray-800 rounded-xl p-4">
-                <h4 className="text-white font-medium mb-4">法门</h4>
+                <h4 className="text-white font-medium mb-4">功能开关</h4>
                 <div className="space-y-3">
                   {Object.entries(featureNames).map(([key, name]) => (
                     <div key={key} className="flex justify-between items-center py-2 border-b border-gray-700 last:border-0">
@@ -275,20 +270,19 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
             </>
           )}
 
-          {/* 资金池 Tab - 福库 */}
           {activeTab === 'funds' && (
             <div className="bg-gray-800 rounded-xl p-4 space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-400 text-base">待赐福银两:</span>
+                  <span className="text-gray-400 text-base">待发放 USDT:</span>
                   <span className="text-white text-base font-medium">{parseFloat(pendingUSDT).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-400 text-base">待赐福缘:</span>
+                  <span className="text-gray-400 text-base">待发放 SMA:</span>
                   <span className="text-white text-base font-medium">{parseFloat(pendingCULTURE).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-700 pb-3">
-                  <span className="text-gray-400 text-base">待回福银两:</span>
+                  <span className="text-gray-400 text-base">待回购 USDT:</span>
                   <span className="text-white text-base font-medium">{parseFloat(pendingBuyback).toFixed(2)}</span>
                 </div>
               </div>
@@ -298,7 +292,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   type="number"
                   value={buybackAmount}
                   onChange={(e) => setBuybackAmount(e.target.value)}
-                  placeholder="银两数量"
+                  placeholder="USDT数量"
                   className="w-full p-3 rounded-xl bg-gray-700 text-white text-base"
                 />
                 <button
@@ -306,7 +300,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   disabled={loading}
                   className="w-full py-3 bg-purple-600 text-white rounded-xl text-base font-medium"
                 >
-                  回福
+                  回购销毁
                 </button>
               </div>
 
@@ -315,7 +309,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   type="number"
                   value={liquidityAmount}
                   onChange={(e) => setLiquidityAmount(e.target.value)}
-                  placeholder="银两数量"
+                  placeholder="USDT数量"
                   className="w-full p-3 rounded-xl bg-gray-700 text-white text-base"
                 />
                 <button
@@ -323,13 +317,12 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   disabled={loading}
                   className="w-full py-3 bg-blue-600 text-white rounded-xl text-base font-medium"
                 >
-                  添福 (需0.005 BNB)
+                  添加流动性 (需0.005 BNB)
                 </button>
               </div>
             </div>
           )}
 
-          {/* 矿池 Tab - 福池 */}
           {activeTab === 'pools' && (
             <div className="bg-gray-800 rounded-xl p-4">
               <div className="flex gap-3">
@@ -337,7 +330,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   type="text"
                   value={poolAddress}
                   onChange={(e) => setPoolAddress(e.target.value)}
-                  placeholder="输入福址"
+                  placeholder="输入地址"
                   className="flex-1 p-3 rounded-xl bg-gray-700 text-white text-base"
                 />
                 <button
@@ -345,35 +338,34 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   disabled={loading}
                   className="px-5 py-3 bg-yellow-600 text-white rounded-xl text-base font-medium"
                 >
-                  添池
+                  添加矿池
                 </button>
               </div>
-              <p className="text-gray-500 text-sm mt-3">添池后该福址将得福池福缘</p>
+              <p className="text-gray-500 text-sm mt-3">添加后该地址将成为矿池，获得矿池奖励</p>
             </div>
           )}
 
-          {/* 节点管理 Tab - 福柱 */}
           {activeTab === 'nodes' && (
             <div className="bg-gray-800 rounded-xl p-4 space-y-4">
               <div className="space-y-3 pb-3 border-b border-gray-700">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-base">福柱数量:</span>
+                  <span className="text-gray-400 text-base">节点数量:</span>
                   <span className="text-white text-base font-medium">{Number(nodeCount)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-base">待赐福缘:</span>
+                  <span className="text-gray-400 text-base">待发放奖励:</span>
                   <span className="text-white text-base font-medium">{parseFloat(pendingNodeRewards).toFixed(2)} USDT</span>
                 </div>
               </div>
 
               <div>
-                <h5 className="text-white text-base font-medium mb-3">立福柱</h5>
+                <h5 className="text-white text-base font-medium mb-3">添加节点</h5>
                 <div className="flex gap-3 mb-4">
                   <input
                     type="text"
                     value={nodeAddress}
                     onChange={(e) => setNodeAddress(e.target.value)}
-                    placeholder="输入福址"
+                    placeholder="输入地址"
                     className="flex-1 p-3 rounded-xl bg-gray-700 text-white text-base"
                   />
                   <button
@@ -381,17 +373,17 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                     disabled={loading}
                     className="px-5 py-3 bg-green-600 text-white rounded-xl text-base font-medium"
                   >
-                    立柱
+                    添加
                   </button>
                 </div>
 
-                <h5 className="text-white text-base font-medium mb-3">撤福柱</h5>
+                <h5 className="text-white text-base font-medium mb-3">移除节点</h5>
                 <div className="flex gap-3">
                   <input
                     type="text"
                     value={removeNodeAddress}
                     onChange={(e) => setRemoveNodeAddress(e.target.value)}
-                    placeholder="输入福址"
+                    placeholder="输入地址"
                     className="flex-1 p-3 rounded-xl bg-gray-700 text-white text-base"
                   />
                   <button
@@ -399,7 +391,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                     disabled={loading}
                     className="px-5 py-3 bg-red-600 text-white rounded-xl text-base font-medium"
                   >
-                    撤柱
+                    移除
                   </button>
                 </div>
               </div>
@@ -410,10 +402,10 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   disabled={loading || parseFloat(pendingNodeRewards) <= 0}
                   className="w-full py-3 bg-purple-600 text-white rounded-xl text-base font-medium disabled:opacity-50"
                 >
-                  赐福
+                  发放奖励
                 </button>
                 <p className="text-gray-500 text-sm mt-3 text-center">
-                  福缘将按福柱贡献分配
+                  奖励将按节点贡献分配
                 </p>
               </div>
             </div>
