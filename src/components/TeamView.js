@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { ethers } from 'ethers';  // ✅ 添加这一行
 import { getDirectDownlines, getTeamStats } from '../services/teamStats';
 
 // ========================================
