@@ -717,8 +717,9 @@ function App() {
         {showOwnerMenu && (
           <OwnerMenu contract={miningContract} ownerAddress={ownerAddress} onClose={() => setShowOwnerMenu(false)} onConfigChange={setFeatureConfig} />
         )}
-      </div>
-    </div>
+      </div>  
+    </div>    
+  </div>     
   );
 }
 
