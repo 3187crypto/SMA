@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { loadConfig, saveConfig } from '../services/ownerConfig';
+import { getCurrentLanguage, t } from '../i18n';
 
 const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [config, setConfig] = useState(loadConfig());
+  const [currentLang] = useState(getCurrentLanguage());
   const [pendingUSDT, setPendingUSDT] = useState('0');
   const [pendingSMA, setPendingSMA] = useState('0');
   const [pendingBuyback, setPendingBuyback] = useState('0');
@@ -29,6 +31,8 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [emergencyAmount, setEmergencyAmount] = useState('');
   const [proposalList, setProposalList] = useState([]);
   const [proposalLoading, setProposalLoading] = useState(false);
+
+  const tr = (key) => t(currentLang, key);
 
   const loadPendingData = async () => {
     if (!contract) return;
@@ -437,7 +441,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       
       <div className="bg-gray-900 rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden mx-4">
         <div className="px-5 py-4 border-b border-gray-700 flex justify-between items-center">
-          <span className="text-white text-lg font-bold">👑 管理员面板</span>
+          <span className="text-white text-lg font-bold">👑 {tr('adminPanel') || '管理员面板'}</span>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">✕</button>
         </div>
 
@@ -446,31 +450,31 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
             onClick={() => setActiveTab('switches')}
             className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'switches' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
           >
-            🎛️ 功能开关
+            🎛️ {tr('featureSwitches') || '功能开关'}
           </button>
           <button
             onClick={() => setActiveTab('funds')}
             className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'funds' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
           >
-            💰 资金池
+            💰 {tr('fundPool') || '资金池'}
           </button>
           <button
             onClick={() => setActiveTab('pools')}
             className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'pools' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
           >
-            ⛏️ 矿池
+            ⛏️ {tr('miningPool')}
           </button>
           <button
             onClick={() => setActiveTab('nodes')}
             className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'nodes' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
           >
-            🌟 节点
+            🌟 {tr('nodeBadge')}
           </button>
           <button
             onClick={() => setActiveTab('governance')}
             className={`px-4 py-3 text-center text-sm whitespace-nowrap ${activeTab === 'governance' ? 'bg-gray-800 text-white border-b-2 border-blue-500' : 'text-gray-400'}`}
           >
-            🗳️ 治理
+            🗳️ {tr('governanceTitle') || '治理'}
           </button>
         </div>
 
@@ -479,21 +483,21 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
             <>
               <div className="bg-gray-800 rounded-xl p-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-white font-medium">🔧 全局维护</span>
+                  <span className="text-white font-medium">🔧 {tr('globalMaintenance') || '全局维护'}</span>
                   <button
                     onClick={toggleMaintenance}
                     className={`px-4 py-2 rounded-lg text-sm ${config.globalMaintenance ? 'bg-red-600' : 'bg-green-600'} text-white`}
                   >
-                    {config.globalMaintenance ? '维护中' : '正常运行'}
+                    {config.globalMaintenance ? (tr('maintenance') || '维护中') : (tr('normal') || '正常运行')}
                   </button>
                 </div>
                 {config.globalMaintenance && (
-                  <p className="text-yellow-400 text-sm mt-3">系统维护中，暂时关闭部分功能</p>
+                  <p className="text-yellow-400 text-sm mt-3">{tr('maintenanceNotice') || '系统维护中，暂时关闭部分功能'}</p>
                 )}
               </div>
 
               <div className="bg-gray-800 rounded-xl p-4">
-                <h4 className="text-white font-medium mb-4">功能开关</h4>
+                <h4 className="text-white font-medium mb-4">{tr('featureSwitches') || '功能开关'}</h4>
                 <div className="space-y-3">
                   {Object.entries(featureNames).map(([key, name]) => (
                     <div key={key} className="flex justify-between items-center py-2 border-b border-gray-700 last:border-0">
@@ -504,7 +508,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                           config.features[key] ? 'bg-green-600' : 'bg-gray-600'
                         } text-white`}
                       >
-                        {config.features[key] ? '开' : '关'}
+                        {config.features[key] ? (tr('on') || '开') : (tr('off') || '关')}
                       </button>
                     </div>
                   ))}
@@ -517,15 +521,15 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
             <div className="bg-gray-800 rounded-xl p-4 space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-400 text-base">待发放 USDT:</span>
+                  <span className="text-gray-400 text-base">{tr('pendingUSDT') || '待发放 USDT'}:</span>
                   <span className="text-white text-base font-medium">{parseFloat(pendingUSDT).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-400 text-base">待发放 SMA:</span>
+                  <span className="text-gray-400 text-base">{tr('pendingSMA') || '待发放 SMA'}:</span>
                   <span className="text-white text-base font-medium">{parseFloat(pendingSMA).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-700 pb-3">
-                  <span className="text-gray-400 text-base">待回购 USDT:</span>
+                  <span className="text-gray-400 text-base">{tr('pendingBuyback') || '待回购 USDT'}:</span>
                   <span className="text-white text-base font-medium">{parseFloat(pendingBuyback).toFixed(2)}</span>
                 </div>
               </div>
@@ -543,7 +547,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   disabled={loading}
                   className="w-full py-3 bg-purple-600 text-white rounded-xl text-base font-medium"
                 >
-                  回购销毁
+                  {tr('buyback') || '回购销毁'}
                 </button>
               </div>
 
@@ -560,7 +564,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   disabled={loading}
                   className="w-full py-3 bg-blue-600 text-white rounded-xl text-base font-medium"
                 >
-                  添加流动性 (需0.005 BNB)
+                  {tr('addLiquidity') || '添加流动性'} (需0.005 BNB)
                 </button>
               </div>
             </div>
@@ -573,7 +577,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   type="text"
                   value={poolAddress}
                   onChange={(e) => setPoolAddress(e.target.value)}
-                  placeholder="输入地址"
+                  placeholder={tr('enterAddress') || '输入地址'}
                   className="flex-1 p-3 rounded-xl bg-gray-700 text-white text-base"
                 />
                 <button
@@ -581,10 +585,10 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   disabled={loading}
                   className="px-5 py-3 bg-yellow-600 text-white rounded-xl text-base font-medium"
                 >
-                  添加矿池
+                  {tr('addPool') || '添加矿池'}
                 </button>
               </div>
-              <p className="text-gray-500 text-sm mt-3">添加后该地址将成为矿池，获得矿池奖励</p>
+              <p className="text-gray-500 text-sm mt-3">{tr('poolAddHint') || '添加后该地址将成为矿池，获得矿池奖励'}</p>
             </div>
           )}
 
@@ -592,23 +596,23 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
             <div className="bg-gray-800 rounded-xl p-4 space-y-4">
               <div className="space-y-3 pb-3 border-b border-gray-700">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-base">节点数量:</span>
+                  <span className="text-gray-400 text-base">{tr('nodeCount') || '节点数量'}:</span>
                   <span className="text-white text-base font-medium">{Number(nodeCount)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-base">待发放 SMA 奖励:</span>
+                  <span className="text-gray-400 text-base">{tr('pendingNodeRewards') || '待发放 SMA 奖励'}:</span>
                   <span className="text-white text-base font-medium">{parseFloat(pendingNodeRewards).toFixed(2)} SMA</span>
                 </div>
               </div>
 
               <div>
-                <h5 className="text-white text-base font-medium mb-3">添加节点</h5>
+                <h5 className="text-white text-base font-medium mb-3">{tr('addNode') || '添加节点'}</h5>
                 <div className="flex gap-3 mb-4">
                   <input
                     type="text"
                     value={nodeAddress}
                     onChange={(e) => setNodeAddress(e.target.value)}
-                    placeholder="输入地址"
+                    placeholder={tr('enterAddress') || '输入地址'}
                     className="flex-1 p-3 rounded-xl bg-gray-700 text-white text-base"
                   />
                   <button
@@ -616,17 +620,17 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                     disabled={loading}
                     className="px-5 py-3 bg-green-600 text-white rounded-xl text-base font-medium"
                   >
-                    添加
+                    {tr('add') || '添加'}
                   </button>
                 </div>
 
-                <h5 className="text-white text-base font-medium mb-3">移除节点</h5>
+                <h5 className="text-white text-base font-medium mb-3">{tr('removeNode') || '移除节点'}</h5>
                 <div className="flex gap-3">
                   <input
                     type="text"
                     value={removeNodeAddress}
                     onChange={(e) => setRemoveNodeAddress(e.target.value)}
-                    placeholder="输入地址"
+                    placeholder={tr('enterAddress') || '输入地址'}
                     className="flex-1 p-3 rounded-xl bg-gray-700 text-white text-base"
                   />
                   <button
@@ -634,7 +638,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                     disabled={loading}
                     className="px-5 py-3 bg-red-600 text-white rounded-xl text-base font-medium"
                   >
-                    移除
+                    {tr('remove') || '移除'}
                   </button>
                 </div>
               </div>
@@ -645,10 +649,10 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                   disabled={loading || parseFloat(pendingNodeRewards) <= 0}
                   className="w-full py-3 bg-purple-600 text-white rounded-xl text-base font-medium disabled:opacity-50"
                 >
-                  发放 SMA 奖励
+                  {tr('distributeRewards') || '发放 SMA 奖励'}
                 </button>
                 <p className="text-gray-500 text-sm mt-3 text-center">
-                  SMA 奖励将按节点贡献分配
+                  {tr('rewardDistributionHint') || 'SMA 奖励将按节点贡献分配'}
                 </p>
               </div>
             </div>
@@ -659,78 +663,78 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
               {/* 成员管理 */}
               <div>
                 <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                  <span>👥</span> 成员管理
+                  <span>👥</span> {tr('memberManagement') || '成员管理'}
                 </h4>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="text"
-                    placeholder="成员地址"
+                    placeholder={tr('memberAddress') || '成员地址'}
                     className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
                     value={memberAddress}
                     onChange={(e) => setMemberAddress(e.target.value)}
                   />
-                  <button onClick={handleAddMember} className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm">添加</button>
+                  <button onClick={handleAddMember} className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm">{tr('add') || '添加'}</button>
                 </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="成员地址"
+                    placeholder={tr('memberAddress') || '成员地址'}
                     className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
                     value={removeMemberAddress}
                     onChange={(e) => setRemoveMemberAddress(e.target.value)}
                   />
-                  <button onClick={handleRemoveMember} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">移除</button>
+                  <button onClick={handleRemoveMember} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">{tr('remove') || '移除'}</button>
                 </div>
               </div>
               
               {/* 提案人管理 */}
               <div className="border-t border-gray-700 pt-3">
                 <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                  <span>📝</span> 提案人管理
+                  <span>📝</span> {tr('proposerManagement') || '提案人管理'}
                 </h4>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="text"
-                    placeholder="提案人地址"
+                    placeholder={tr('proposerAddress') || '提案人地址'}
                     className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
                     value={proposerAddress}
                     onChange={(e) => setProposerAddress(e.target.value)}
                   />
-                  <button onClick={handleAddProposer} className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm">添加</button>
+                  <button onClick={handleAddProposer} className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm">{tr('add') || '添加'}</button>
                 </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="提案人地址"
+                    placeholder={tr('proposerAddress') || '提案人地址'}
                     className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
                     value={removeProposerAddress}
                     onChange={(e) => setRemoveProposerAddress(e.target.value)}
                   />
-                  <button onClick={handleRemoveProposer} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">移除</button>
+                  <button onClick={handleRemoveProposer} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">{tr('remove') || '移除'}</button>
                 </div>
               </div>
               
               {/* 提案列表 */}
               <div className="border-t border-gray-700 pt-3">
                 <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                  <span>📋</span> 提案列表
+                  <span>📋</span> {tr('proposalList') || '提案列表'}
                 </h4>
                 {proposalLoading ? (
-                  <div className="text-center py-4 text-gray-400 text-sm">加载中...</div>
+                  <div className="text-center py-4 text-gray-400 text-sm">{tr('loading') || '加载中...'}</div>
                 ) : proposalList.length === 0 ? (
-                  <div className="text-center py-4 text-gray-400 text-sm">暂无提案</div>
+                  <div className="text-center py-4 text-gray-400 text-sm">{tr('noProposals') || '暂无提案'}</div>
                 ) : (
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {proposalList.map(proposal => (
                       <div key={proposal.id} className="bg-gray-700 rounded-lg p-3">
                         <div className="flex justify-between items-start mb-2">
-                          <span className="text-xs text-gray-400">提案 #{proposal.id}</span>
+                          <span className="text-xs text-gray-400">{tr('proposal') || '提案'} #{proposal.id}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
                             proposal.executed ? 'bg-green-900 text-green-300' :
                             !proposal.active ? 'bg-red-900 text-red-300' :
                             'bg-yellow-900 text-yellow-300'
                           }`}>
-                            {proposal.executed ? '已执行' : !proposal.active ? '已取消' : '投票中'}
+                            {proposal.executed ? (tr('executed') || '已执行') : !proposal.active ? (tr('cancelled') || '已取消') : (tr('voting') || '投票中')}
                           </span>
                         </div>
                         <div className="text-xs text-gray-300 mb-1 font-mono">
@@ -742,7 +746,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                         <div className="flex justify-between text-xs text-gray-400 mb-2">
                           <span>👍 {proposal.yesCount}</span>
                           <span>👎 {proposal.noCount}</span>
-                          <span>需 {proposal.requiredVotes} 票</span>
+                          <span>{tr('requiredVotes') || '需'} {proposal.requiredVotes} {tr('votes') || '票'}</span>
                         </div>
                         <div className="w-full bg-gray-600 rounded-full h-1 mb-3">
                           <div 
@@ -761,14 +765,14 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                                   : 'bg-gray-600 cursor-not-allowed'
                               } text-white`}
                             >
-                              执行提案
+                              {tr('execute') || '执行'}
                             </button>
                             <button
                               onClick={() => handleCancelProposalById(proposal.id)}
                               disabled={loading}
                               className="flex-1 py-1.5 bg-orange-600 text-white text-xs rounded-lg hover:bg-orange-700"
                             >
-                              取消提案
+                              {tr('cancel') || '取消'}
                             </button>
                           </div>
                         )}
@@ -781,61 +785,61 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
               {/* 提案管理快捷操作 */}
               <div className="border-t border-gray-700 pt-3">
                 <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                  <span>⚡</span> 快捷操作
+                  <span>⚡</span> {tr('quickActions') || '快捷操作'}
                 </h4>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="number"
-                    placeholder="提案ID"
+                    placeholder={tr('proposalId') || '提案ID'}
                     className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
                     value={executeProposalId}
                     onChange={(e) => setExecuteProposalId(e.target.value)}
                   />
-                  <button onClick={handleExecuteProposal} className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm">执行</button>
+                  <button onClick={handleExecuteProposal} className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm">{tr('execute') || '执行'}</button>
                 </div>
                 <div className="flex gap-2">
                   <input
                     type="number"
-                    placeholder="提案ID"
+                    placeholder={tr('proposalId') || '提案ID'}
                     className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
                     value={cancelProposalId}
                     onChange={(e) => setCancelProposalId(e.target.value)}
                   />
-                  <button onClick={handleCancelProposal} className="px-3 py-2 bg-orange-600 text-white rounded-lg text-sm">取消</button>
+                  <button onClick={handleCancelProposal} className="px-3 py-2 bg-orange-600 text-white rounded-lg text-sm">{tr('cancel') || '取消'}</button>
                 </div>
               </div>
               
               {/* 紧急权限 */}
               <div className="border-t border-gray-700 pt-3">
                 <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                  <span>⚠️</span> 紧急权限
+                  <span>⚠️</span> {tr('emergencyPrivilege') || '紧急权限'}
                 </h4>
                 <div className="flex gap-2 mb-3">
                   <input
                     type="text"
-                    placeholder="接收地址"
+                    placeholder={tr('recipientLabel') || '接收地址'}
                     className="flex-1 p-2 rounded-lg bg-gray-700 text-white text-sm"
                     value={emergencyRecipient}
                     onChange={(e) => setEmergencyRecipient(e.target.value)}
                   />
                   <input
                     type="number"
-                    placeholder="金额 (0=全部)"
+                    placeholder={tr('amountLabel') || '金额 (0=全部)'}
                     className="w-24 p-2 rounded-lg bg-gray-700 text-white text-sm"
                     value={emergencyAmount}
                     onChange={(e) => setEmergencyAmount(e.target.value)}
                   />
-                  <button onClick={handleEmergencyWithdraw} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">提款</button>
+                  <button onClick={handleEmergencyWithdraw} className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm">{tr('withdraw') || '提款'}</button>
                 </div>
                 <button 
                   onClick={handleRevokeEmergency} 
                   disabled={loading}
                   className="w-full py-2 bg-gray-600 text-white rounded-lg text-sm hover:bg-red-700 transition disabled:opacity-50"
                 >
-                  ⚠️ 撤销紧急权限（永久，不可逆）
+                  ⚠️ {tr('revokeEmergency') || '撤销紧急权限（永久，不可逆）'}
                 </button>
                 <p className="text-gray-500 text-xs mt-2 text-center">
-                  撤销后紧急提款功能将永久关闭，请谨慎操作
+                  {tr('revokeWarning') || '撤销后紧急提款功能将永久关闭，请谨慎操作'}
                 </p>
               </div>
             </div>

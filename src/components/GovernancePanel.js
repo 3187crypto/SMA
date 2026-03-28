@@ -1,8 +1,11 @@
+// src/components/GovernancePanel.js
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { getCurrentLanguage, t } from '../i18n';
 
 const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
   const [loading, setLoading] = useState(true);
+  const [currentLang] = useState(getCurrentLanguage());
   const [activeProposals, setActiveProposals] = useState([]);
   const [votingStates, setVotingStates] = useState({});
   const [memberCount, setMemberCount] = useState(0);
@@ -11,6 +14,8 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
   const [newProposalAmount, setNewProposalAmount] = useState('');
   const [creating, setCreating] = useState(false);
   const [votingInProgress, setVotingInProgress] = useState({});
+
+  const tr = (key) => t(currentLang, key);
 
   useEffect(() => {
     loadGovernanceData();
@@ -61,10 +66,10 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
     try {
       const tx = await contract.vote(proposalId, support);
       await tx.wait();
-      alert(`投票成功！${support ? '赞成' : '反对'}`);
+      alert(tr('voteSuccess') || `投票成功！${support ? tr('voteYes') : tr('voteNo')}`);
       await loadGovernanceData();
     } catch (error) {
-      alert('投票失败: ' + error.message);
+      alert(tr('voteFailed') || '投票失败: ' + error.message);
     } finally {
       setVotingInProgress(prev => ({ ...prev, [proposalId]: false }));
     }
@@ -72,11 +77,11 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
 
   const handleCreateProposal = async () => {
     if (!newProposalTarget || !newProposalAmount) {
-      alert('请填写完整信息');
+      alert(tr('pleaseFillAllFields') || '请填写完整信息');
       return;
     }
     if (!ethers.utils.isAddress(newProposalTarget)) {
-      alert('请输入有效的地址');
+      alert(tr('invalidAddress') || '请输入有效的地址');
       return;
     }
     
@@ -85,13 +90,13 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
       const amount = ethers.utils.parseEther(newProposalAmount);
       const tx = await contract.createProposal(newProposalTarget, amount);
       await tx.wait();
-      alert('提案创建成功！');
+      alert(tr('proposalCreated') || '提案创建成功！');
       setShowCreateModal(false);
       setNewProposalTarget('');
       setNewProposalAmount('');
       await loadGovernanceData();
     } catch (error) {
-      alert('创建提案失败: ' + error.message);
+      alert(tr('createProposalFailed') || '创建提案失败: ' + error.message);
     } finally {
       setCreating(false);
     }
@@ -101,16 +106,6 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  const formatTime = (timestamp) => {
-    const now = Math.floor(Date.now() / 1000);
-    const diff = Number(timestamp) + 7 * 24 * 60 * 60 - now;
-    if (diff <= 0) return '已过期';
-    const days = Math.floor(diff / 86400);
-    const hours = Math.floor((diff % 86400) / 3600);
-    if (days > 0) return `${days}天${hours}小时后结束`;
-    return `${hours}小时后结束`;
-  };
-
   if (!isMember) return null;
 
   return (
@@ -118,9 +113,9 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">🗳️</span>
-          <h3 className="font-semibold text-gray-800">治理投票</h3>
+          <h3 className="font-semibold text-gray-800">{tr('governanceTitle')}</h3>
           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-            {memberCount} 成员
+            {memberCount} {tr('memberCountText')}
           </span>
         </div>
         {isProposer && (
@@ -128,23 +123,23 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
             onClick={() => setShowCreateModal(true)}
             className="px-2 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"
           >
-            + 创建提案
+            + {tr('createProposal')}
           </button>
         )}
       </div>
       
       {loading ? (
-        <div className="text-center py-4 text-gray-500 text-sm">加载中...</div>
+        <div className="text-center py-4 text-gray-500 text-sm">{tr('loading')}</div>
       ) : activeProposals.length === 0 ? (
-        <div className="text-center py-4 text-gray-400 text-sm">暂无活跃提案</div>
+        <div className="text-center py-4 text-gray-400 text-sm">{tr('noActiveProposals')}</div>
       ) : (
         <div className="space-y-3">
           {activeProposals.map(proposal => (
             <div key={proposal.id} className="bg-gray-50 rounded-xl p-3">
               <div className="flex justify-between items-start mb-2">
-                <div className="text-xs text-gray-500">提案 #{proposal.id}</div>
+                <div className="text-xs text-gray-500">{tr('proposalIdText')} #{proposal.id}</div>
                 <div className="text-xs text-gray-500">
-                  所需票数: {proposal.requiredVotes}/{proposal.memberCountAtCreation}
+                  {tr('requiredVotes')}: {proposal.requiredVotes}/{proposal.memberCountAtCreation}
                 </div>
               </div>
               <div className="text-sm font-mono text-gray-700 mb-1">
@@ -158,7 +153,7 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
                   👍 {proposal.yesCount} / 👎 {proposal.noCount}
                 </div>
                 <div className="text-xs text-gray-500">
-                  进度: {Math.floor((proposal.yesCount / proposal.requiredVotes) * 100)}%
+                  {Math.floor((proposal.yesCount / proposal.requiredVotes) * 100)}%
                 </div>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-1.5 mb-3">
@@ -168,7 +163,7 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
                 ></div>
               </div>
               {votingStates[proposal.id] ? (
-                <div className="text-center text-xs text-gray-400 py-1">已投票</div>
+                <div className="text-center text-xs text-gray-400 py-1">{tr('alreadyVoted')}</div>
               ) : (
                 <div className="flex gap-2">
                   <button
@@ -176,14 +171,14 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
                     disabled={votingInProgress[proposal.id]}
                     className="flex-1 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50"
                   >
-                    👍 赞成
+                    👍 {tr('voteYes')}
                   </button>
                   <button
                     onClick={() => handleVote(proposal.id, false)}
                     disabled={votingInProgress[proposal.id]}
                     className="flex-1 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50"
                   >
-                    👎 反对
+                    👎 {tr('voteNo')}
                   </button>
                 </div>
               )}
@@ -197,12 +192,12 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full">
             <div className="p-5 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-bold">创建提案</h3>
+              <h3 className="text-lg font-bold">{tr('createProposalModal')}</h3>
               <button onClick={() => setShowCreateModal(false)} className="text-gray-500 text-xl">✕</button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">收款地址</label>
+                <label className="text-sm text-gray-600 mb-1 block">{tr('recipientAddress')}</label>
                 <input
                   type="text"
                   value={newProposalTarget}
@@ -212,7 +207,7 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">金额 (USDT)</label>
+                <label className="text-sm text-gray-600 mb-1 block">{tr('amountUSDT')}</label>
                 <input
                   type="number"
                   value={newProposalAmount}
@@ -226,7 +221,7 @@ const GovernancePanel = ({ contract, userAddress, isMember, isProposer }) => {
                 disabled={creating}
                 className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                {creating ? '创建中...' : '创建提案'}
+                {creating ? tr('creating') : tr('createProposal')}
               </button>
             </div>
           </div>
