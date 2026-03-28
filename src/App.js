@@ -484,8 +484,8 @@ function App() {
       <div className="mining-bg-layer"></div>
       <div className="mining-overlay"></div>
       
-      <div className="relative w-full px-4 py-8 z-10">
-        <div className="max-w-2xl mx-auto">
+      <div className="relative w-full py-8 z-10">
+        <div className="w-full md:max-w-2xl md:mx-auto">
         <header className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 mb-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <h1 className="text-3xl font-bold text-gray-800">{tr('appName')}</h1>
