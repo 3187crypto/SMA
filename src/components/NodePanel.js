@@ -1,9 +1,12 @@
+// src/components/NodePanel.js
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { getCurrentLanguage, t } from '../i18n';
 import GovernancePanel from './GovernancePanel';
 
 const NodePanel = ({ contract, userAddress, onClose }) => {
   const [loading, setLoading] = useState(true);
+  const [currentLang] = useState(getCurrentLanguage());
   const [isMember, setIsMember] = useState(false);
   const [isProposer, setIsProposer] = useState(false);
   const [nodeData, setNodeData] = useState({
@@ -13,6 +16,8 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
     pendingNodeRewards: '0',
     timeToNextDistribution: '0'
   });
+
+  const tr = (key) => t(currentLang, key);
 
   useEffect(() => {
     const loadNodeData = async () => {
@@ -85,7 +90,7 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
 
   const formatNumber = (num) => parseFloat(num).toFixed(2);
   const formatTime = (seconds) => {
-    if (seconds <= 0) return '即将分配';
+    if (seconds <= 0) return tr('nextDistribution') + ': ' + tr('soon');
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     if (days > 0) return `${days}天${hours}小时后`;
@@ -98,7 +103,7 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🌟</span>
-            <h2 className="text-xl font-bold text-gray-800">节点面板</h2>
+            <h2 className="text-xl font-bold text-gray-800">{tr('nodePanelTitle')}</h2>
           </div>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
         </div>
@@ -107,49 +112,49 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
           {loading ? (
             <div className="text-center py-8 text-gray-500">
               <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-              加载中...
+              {tr('loading')}
             </div>
           ) : (
             <>
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4">
-                <p className="text-purple-800 text-sm font-medium mb-3">📊 节点池信息</p>
+                <p className="text-purple-800 text-sm font-medium mb-3">📊 {tr('nodePoolInfo')}</p>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-sm">待分配总额</span>
+                    <span className="text-gray-600 text-sm">{tr('pendingTotal')}</span>
                     <span className="text-lg font-bold text-purple-600">{formatNumber(nodeData.pendingNodeRewards)} SMA</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-sm">下次分配</span>
+                    <span className="text-gray-600 text-sm">{tr('nextDistribution')}</span>
                     <span className="text-lg font-bold text-orange-600">{formatTime(nodeData.timeToNextDistribution)}</span>
                   </div>
                 </div>
               </div>
               
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4">
-                <p className="text-green-800 text-sm font-medium mb-3">📈 我的收益</p>
+                <p className="text-green-800 text-sm font-medium mb-3">📈 {tr('myEarnings')}</p>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-sm">已领取节点奖励</span>
+                    <span className="text-gray-600 text-sm">{tr('claimedNodeReward')}</span>
                     <span className="text-lg font-bold text-green-600">{formatNumber(nodeData.totalRewardedFromNode)} SMA</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-sm">本期挖矿贡献</span>
+                    <span className="text-gray-600 text-sm">{tr('periodContribution')}</span>
                     <span className="text-lg font-bold text-blue-600">{formatNumber(nodeData.periodContribution)} SMA</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t border-green-200">
-                    <span className="text-gray-600 text-sm">预计下次获得</span>
+                    <span className="text-gray-600 text-sm">{tr('estimatedNext')}</span>
                     <span className="text-lg font-bold text-amber-600">≈ {formatNumber(nodeData.estimatedNextReward)} SMA</span>
                   </div>
                 </div>
               </div>
               
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-gray-700 text-sm font-medium mb-3">📋 节点分配规则</p>
+                <p className="text-gray-700 text-sm font-medium mb-3">📋 {tr('nodeRules')}</p>
                 <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>每 7 天分配一次节点奖励池</span></li>
-                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>30% 奖励由所有节点平均分配</span></li>
-                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>70% 奖励按节点本期挖矿贡献分配</span></li>
-                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>挖矿贡献越高，奖励越多</span></li>
+                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>{tr('nodeRule1')}</span></li>
+                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>{tr('nodeRule2')}</span></li>
+                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>{tr('nodeRule3')}</span></li>
+                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>{tr('nodeRule4')}</span></li>
                 </ul>
               </div>
               
@@ -164,7 +169,7 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
         </div>
         
         <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <button onClick={onClose} className="w-full py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">关闭</button>
+          <button onClick={onClose} className="w-full py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">{tr('close')}</button>
         </div>
       </div>
     </div>
