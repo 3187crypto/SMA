@@ -26,7 +26,7 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
       const rect = buttonRef.current.getBoundingClientRect();
       setDropdownPosition({
         top: rect.bottom + window.scrollY + 5,
-        left: rect.right - 160, // 160px 是菜单宽度
+        left: rect.right - 160,
       });
     }
   };
@@ -43,7 +43,7 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 监听滚动和窗口大小变化，更新菜单位置
+  // 监听滚动和窗口大小变化
   useEffect(() => {
     if (isOpen) {
       updateDropdownPosition();
@@ -68,7 +68,7 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
       <button
         ref={buttonRef}
         onClick={toggleDropdown}
-        className="flex items-center space-x-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-sm relative z-50"
+        className="flex items-center space-x-1 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:shadow-lg transition text-sm shadow-md"
       >
         <span>{currentLangData.flag}</span>
         <span className="hidden sm:inline">{currentLangData.name}</span>
@@ -80,11 +80,10 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed w-40 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+          className="fixed w-40 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-[9999]"
           style={{
             top: dropdownPosition.top,
             left: dropdownPosition.left,
-            zIndex: 99999,
           }}
         >
           {languages.map((lang) => (
@@ -92,7 +91,7 @@ const LanguageSwitcher = ({ onLanguageChange }) => {
               key={lang.code}
               onClick={() => handleLanguageChange(lang.code)}
               className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2 transition ${
-                currentLang === lang.code ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                currentLang === lang.code ? 'bg-amber-50 text-amber-600' : 'text-gray-700'
               }`}
             >
               <span>{lang.flag}</span>

@@ -9,7 +9,7 @@ export const languages = [
 ];
 
 export const translations = {
-  // 繁體中文
+  // ==================== 繁體中文 ====================
   'zh-TW': {
     // 通用
     appName: '⛏️ 比特超級礦工',
@@ -18,6 +18,8 @@ export const translations = {
     refresh: '刷新',
     copy: '複製',
     copied: '✓ 已複製',
+    loading: '加載中...',
+    close: '關閉',
     
     // 数据卡片
     usdtBalance: 'USDT餘額',
@@ -111,30 +113,90 @@ export const translations = {
     totalSupply: '總發行',
     
     // 其他
-    loading: '加載中...',
     noMembers: '暫無團隊成員',
     inviteFriends: '邀請好友加入，共同成長！',
-    close: '關閉'
+    
+    // ========== 矿池面板 ==========
+    poolPanelTitle: '礦池面板',
+    totalPoolReward: '累計礦池獎勵',
+    remainingCap: '剩餘可領取上限',
+    teamTotalMining: '團隊總挖礦',
+    poolBenefits: '礦池權益說明',
+    poolBenefit1: '下級領取獎勵時，您可獲得該筆獎勵的 5%',
+    poolBenefit2: '礦池有效期 45 天，每次獲得獎勵後重置計時',
+    poolBenefit3: '礦池獎勵上限為淨存款的 2 倍',
+    poolBenefit4: '超過 45 天未獲得獎勵，礦池資格自動失效',
+    
+    // ========== 节点面板 ==========
+    nodePanelTitle: '節點面板',
+    nodePoolInfo: '節點池信息',
+    pendingTotal: '待分配總額',
+    nextDistribution: '下次分配',
+    myEarnings: '我的收益',
+    claimedNodeReward: '已領取節點獎勵',
+    periodContribution: '本期挖礦貢獻',
+    estimatedNext: '預計下次獲得',
+    nodeRules: '節點分配規則',
+    nodeRule1: '每 7 天分配一次節點獎勵池',
+    nodeRule2: '30% 獎勵由所有節點平均分配',
+    nodeRule3: '70% 獎勵按節點本期挖礦貢獻分配',
+    nodeRule4: '挖礦貢獻越高，獎勵越多',
+    
+    // ========== 治理面板 ==========
+    governanceTitle: '治理投票',
+    memberCountText: '成員',
+    createProposal: '創建提案',
+    activeProposals: '活躍提案',
+    noActiveProposals: '暫無活躍提案',
+    proposalIdText: '提案',
+    requiredVotes: '所需票數',
+    voteYes: '贊成',
+    voteNo: '反對',
+    alreadyVoted: '已投票',
+    createProposalModal: '創建提案',
+    recipientAddress: '收款地址',
+    amountUSDT: '金額 (USDT)',
+    creating: '創建中...',
+    
+    // ========== 管理员面板治理Tab ==========
+    memberManagement: '成員管理',
+    proposerManagement: '提案人管理',
+    proposalList: '提案列表',
+    quickActions: '快捷操作',
+    execute: '執行',
+    cancel: '取消',
+    emergencyPrivilege: '緊急權限',
+    revokeEmergency: '⚠️ 撤銷緊急權限（永久，不可逆）',
+    revokeWarning: '撤銷後緊急提款功能將永久關閉，請謹慎操作',
+    recipientLabel: '接收地址',
+    amountLabel: '金額 (0=全部)',
+    withdraw: '提款'
   },
 
-  // English (保持原有内容)
+  // ==================== English ====================
   'en': {
+    // 通用
     appName: '⛏️ Bit Super Miner',
     connect: 'Connect Wallet',
     disconnect: 'Disconnect',
     refresh: 'Refresh',
     copy: 'Copy',
     copied: '✓ Copied',
+    loading: 'Loading...',
+    close: 'Close',
     
+    // 数据卡片
     usdtBalance: 'USDT Balance',
     smaBalance: 'SMA Balance',
     currentPrice: 'Current Price',
     marketPrice: 'Market Price',
     
+    // 邀请码
     inviteCode: 'Invite Code',
     generateInviteCode: 'Generate Invite Code',
     generating: 'Generating...',
     
+    // 我的资产
     myAssets: 'My Assets',
     depositPrincipal: 'Deposit Principal',
     remainingPrincipal: 'Remaining Principal',
@@ -143,20 +205,24 @@ export const translations = {
     claimReward: 'Claim Rewards',
     claiming: 'Claiming...',
     
+    // 存款/提款
     deposit: 'Deposit',
     withdraw: 'Withdraw',
     enterAmount: 'Enter amount',
     depositing: 'Depositing...',
     withdrawing: 'Withdrawing...',
     
+    // 绑定推荐
     bindReferral: 'Bind Referral',
     bindReferralDesc: 'Bind Referral (0.001 BNB required)',
     enterAddress: 'Enter address',
     binding: 'Binding...',
     
+    // 团队网络
     teamNetwork: 'Team Network',
     networkHashrate: 'Network Hashrate',
     
+    // 节点
     becomeNode: 'Become Node',
     nodeTitle: '🌟 Become SMA Node',
     nodeBenefits: '💎 Node Benefits:',
@@ -172,19 +238,23 @@ export const translations = {
     nodeSuccess: '🎉 Congratulations! You are now an SMA Node! Node benefits will be automatically activated.',
     nodeAddressLabel: 'Payment USDT will be sent to platform node address',
     
+    // 邀请弹窗
     bindReferralModal: 'Bind Referral',
     enterInviteCode: 'Enter invite code to bind referral',
     inviteCodePlaceholder: 'Enter 8-digit invite code',
     bind: 'Bind',
     skip: 'Skip',
     
+    // 矿池/节点标识
     miningPool: 'Mining Pool',
     nodeBadge: 'Node',
     
+    // 按钮状态
     maintenance: 'Maintenance',
     success: 'Success',
     failed: 'Failed',
     
+    // 提示信息
     pleaseConnectWallet: 'Please connect wallet first',
     pleaseEnterValidAddress: 'Please enter a valid address',
     pleaseEnterInviteCode: 'Please enter invite code',
@@ -202,16 +272,72 @@ export const translations = {
     copyFailed: 'Copy failed, please copy manually: ',
     paymentFailed: 'Payment failed: ',
     
+    // SMA进度
     smaProgress: 'SMA Progress',
     totalSupply: 'Total Supply',
     
-    loading: 'Loading...',
+    // 其他
     noMembers: 'No team members yet',
     inviteFriends: 'Invite friends to join and grow together!',
-    close: 'Close'
+    
+    // ========== Pool Panel ==========
+    poolPanelTitle: 'Mining Pool Panel',
+    totalPoolReward: 'Total Pool Reward',
+    remainingCap: 'Remaining Cap',
+    teamTotalMining: 'Team Total Mining',
+    poolBenefits: 'Pool Benefits',
+    poolBenefit1: 'Get 5% of rewards when downline claims',
+    poolBenefit2: '45-day validity, resets after each reward',
+    poolBenefit3: 'Reward cap is 2x net deposit',
+    poolBenefit4: 'Expires after 45 days without reward',
+    
+    // ========== Node Panel ==========
+    nodePanelTitle: 'Node Panel',
+    nodePoolInfo: 'Node Pool Info',
+    pendingTotal: 'Pending Total',
+    nextDistribution: 'Next Distribution',
+    myEarnings: 'My Earnings',
+    claimedNodeReward: 'Claimed Node Reward',
+    periodContribution: 'Period Contribution',
+    estimatedNext: 'Estimated Next',
+    nodeRules: 'Node Distribution Rules',
+    nodeRule1: 'Distributed every 7 days',
+    nodeRule2: '30% equally shared among all nodes',
+    nodeRule3: '70% based on period contribution',
+    nodeRule4: 'Higher contribution = more rewards',
+    
+    // ========== Governance Panel ==========
+    governanceTitle: 'Governance Voting',
+    memberCountText: 'Members',
+    createProposal: 'Create Proposal',
+    activeProposals: 'Active Proposals',
+    noActiveProposals: 'No active proposals',
+    proposalIdText: 'Proposal',
+    requiredVotes: 'Required Votes',
+    voteYes: 'Yes',
+    voteNo: 'No',
+    alreadyVoted: 'Already Voted',
+    createProposalModal: 'Create Proposal',
+    recipientAddress: 'Recipient Address',
+    amountUSDT: 'Amount (USDT)',
+    creating: 'Creating...',
+    
+    // ========== Owner Menu Governance Tab ==========
+    memberManagement: 'Member Management',
+    proposerManagement: 'Proposer Management',
+    proposalList: 'Proposal List',
+    quickActions: 'Quick Actions',
+    execute: 'Execute',
+    cancel: 'Cancel',
+    emergencyPrivilege: 'Emergency Privilege',
+    revokeEmergency: '⚠️ Revoke Emergency Privilege (Permanent, Irreversible)',
+    revokeWarning: 'After revocation, emergency withdrawal will be permanently disabled',
+    recipientLabel: 'Recipient Address',
+    amountLabel: 'Amount (0 = All)',
+    withdraw: 'Withdraw'
   },
 
-  // Deutsch (保留原有内容)
+  // ==================== Deutsch (简化版，保持结构一致) ====================
   'de': {
     appName: '⛏️ Bit Super Miner',
     connect: 'Wallet verbinden',
@@ -219,16 +345,15 @@ export const translations = {
     refresh: 'Aktualisieren',
     copy: 'Kopieren',
     copied: '✓ Kopiert',
-    
+    loading: 'Laden...',
+    close: 'Schließen',
     usdtBalance: 'USDT Guthaben',
     smaBalance: 'SMA Guthaben',
     currentPrice: 'Aktueller Preis',
     marketPrice: 'Marktpreis',
-    
     inviteCode: 'Einladungscode',
     generateInviteCode: 'Einladungscode generieren',
     generating: 'Generiere...',
-    
     myAssets: 'Meine Vermögenswerte',
     depositPrincipal: 'Einzahlung',
     remainingPrincipal: 'Restbetrag',
@@ -236,76 +361,112 @@ export const translations = {
     totalReward: 'Gesamtbelohnung',
     claimReward: 'Belohnung einfordern',
     claiming: 'Fordere ein...',
-    
     deposit: 'Einzahlen',
     withdraw: 'Auszahlen',
     enterAmount: 'Betrag eingeben',
     depositing: 'Zahle ein...',
     withdrawing: 'Zahle aus...',
-    
     bindReferral: 'Empfehlung binden',
     bindReferralDesc: 'Empfehlung binden (0.001 BNB erforderlich)',
     enterAddress: 'Adresse eingeben',
     binding: 'Binde...',
-    
     teamNetwork: 'Team-Netzwerk',
     networkHashrate: 'Netzwerk-Hashrate',
-    
     becomeNode: 'Node werden',
     nodeTitle: '🌟 SMA Node werden',
     nodeBenefits: '💎 Node-Vorteile:',
-    nodeBenefit1: 'Transaktionssteuer: 60% der Handelsgebühren gehen an Nodes',
-    nodeBenefit2: 'Mining-Bonus: Zusätzlicher 70% Belohnungspool basierend auf Mining-Menge',
+    nodeBenefit1: 'Transaktionssteuer: 60% der Handelsgebühren an Nodes',
+    nodeBenefit2: 'Mining-Bonus: Extra 70% Belohnungspool',
     nodeBenefit3: 'Passives Einkommen: Automatische Auszahlung',
-    nodeBenefit4: 'Begrenzte Plätze: Nur 99 Nodes, wer zuerst kommt',
+    nodeBenefit4: 'Begrenzte Plätze: Nur 99 Nodes',
     nodePrice: '1000 USDT',
-    nodeDesc: 'Node-Status sichern, lebenslange Plattformvorteile',
-    nodeAgree: 'Ich habe die Node-Bedingungen gelesen und stimme zu, 1000 USDT zu zahlen',
+    nodeDesc: 'Node-Status sichern, lebenslange Vorteile',
+    nodeAgree: 'Ich stimme zu, 1000 USDT zu zahlen',
     nodeApply: '💎 Jetzt bewerben, 1000 USDT zahlen',
     nodeProcessing: 'Verarbeite...',
-    nodeSuccess: '🎉 Glückwunsch! Sie sind jetzt ein SMA Node! Node-Vorteile werden automatisch aktiviert.',
+    nodeSuccess: '🎉 Glückwunsch! Sie sind jetzt ein SMA Node!',
     nodeAddressLabel: 'Zahlung USDT wird an die Node-Adresse gesendet',
-    
     bindReferralModal: 'Empfehlung binden',
     enterInviteCode: 'Einladungscode eingeben',
-    inviteCodePlaceholder: '8-stelligen Einladungscode eingeben',
+    inviteCodePlaceholder: '8-stelligen Code eingeben',
     bind: 'Binden',
     skip: 'Überspringen',
-    
     miningPool: 'Mining-Pool',
     nodeBadge: 'Node',
-    
     maintenance: 'Wartung',
     success: 'Erfolg',
     failed: 'Fehlgeschlagen',
-    
-    pleaseConnectWallet: 'Bitte zuerst Wallet verbinden',
-    pleaseEnterValidAddress: 'Bitte gültige Adresse eingeben',
-    pleaseEnterInviteCode: 'Bitte Einladungscode eingeben',
-    pleaseAgreeTerms: 'Bitte lesen und akzeptieren Sie die Node-Bedingungen',
+    pleaseConnectWallet: 'Bitte Wallet verbinden',
+    pleaseEnterValidAddress: 'Bitte gültige Adresse',
+    pleaseEnterInviteCode: 'Bitte Einladungscode',
+    pleaseAgreeTerms: 'Bitte lesen und akzeptieren',
     depositSuccess: 'Einzahlung erfolgreich!',
     depositFailed: 'Einzahlung fehlgeschlagen: ',
     withdrawSuccess: 'Auszahlung erfolgreich!',
     withdrawFailed: 'Auszahlung fehlgeschlagen: ',
-    claimSuccess: 'Belohnung erfolgreich eingefordert!',
+    claimSuccess: 'Belohnung eingefordert!',
     claimFailed: 'Einfordern fehlgeschlagen: ',
     bindSuccess: 'Empfehlungsbindung erfolgreich!',
     bindFailed: 'Empfehlungsbindung fehlgeschlagen: ',
-    generateCodeSuccess: 'Einladungscode erfolgreich generiert!',
-    generateCodeFailed: 'Einladungscode-Generierung fehlgeschlagen: ',
-    copyFailed: 'Kopieren fehlgeschlagen, bitte manuell kopieren: ',
+    generateCodeSuccess: 'Einladungscode generiert!',
+    generateCodeFailed: 'Generierung fehlgeschlagen: ',
+    copyFailed: 'Kopieren fehlgeschlagen: ',
     paymentFailed: 'Zahlung fehlgeschlagen: ',
-    
     smaProgress: 'SMA Fortschritt',
     totalSupply: 'Gesamtmenge',
-    
-    loading: 'Laden...',
-    noMembers: 'Noch keine Teammitglieder',
-    inviteFriends: 'Laden Sie Freunde ein, um gemeinsam zu wachsen!',
-    close: 'Schließen'
+    noMembers: 'Keine Teammitglieder',
+    inviteFriends: 'Laden Sie Freunde ein!',
+    poolPanelTitle: 'Mining-Pool Panel',
+    totalPoolReward: 'Gesamt Pool-Belohnung',
+    remainingCap: 'Verbleibende Obergrenze',
+    teamTotalMining: 'Team-Mining gesamt',
+    poolBenefits: 'Pool-Vorteile',
+    poolBenefit1: '5% der Belohnungen von Downlines',
+    poolBenefit2: '45 Tage gültig, wird bei Belohnung zurückgesetzt',
+    poolBenefit3: 'Obergrenze: 2x Netto-Einzahlung',
+    poolBenefit4: 'Läuft nach 45 Tagen ohne Belohnung ab',
+    nodePanelTitle: 'Node-Panel',
+    nodePoolInfo: 'Node-Pool Info',
+    pendingTotal: 'Ausstehend gesamt',
+    nextDistribution: 'Nächste Verteilung',
+    myEarnings: 'Meine Einnahmen',
+    claimedNodeReward: 'Erhaltene Node-Belohnung',
+    periodContribution: 'Beitrag dieser Periode',
+    estimatedNext: 'Voraussichtlich nächstes Mal',
+    nodeRules: 'Node-Verteilungsregeln',
+    nodeRule1: 'Alle 7 Tage verteilt',
+    nodeRule2: '30% gleichmäßig auf alle Nodes',
+    nodeRule3: '70% nach Beitrag dieser Periode',
+    nodeRule4: 'Mehr Beitrag = mehr Belohnung',
+    governanceTitle: 'Governance-Abstimmung',
+    memberCountText: 'Mitglieder',
+    createProposal: 'Vorschlag erstellen',
+    activeProposals: 'Aktive Vorschläge',
+    noActiveProposals: 'Keine aktiven Vorschläge',
+    proposalIdText: 'Vorschlag',
+    requiredVotes: 'Erforderliche Stimmen',
+    voteYes: 'Ja',
+    voteNo: 'Nein',
+    alreadyVoted: 'Bereits abgestimmt',
+    createProposalModal: 'Vorschlag erstellen',
+    recipientAddress: 'Empfängeradresse',
+    amountUSDT: 'Betrag (USDT)',
+    creating: 'Erstelle...',
+    memberManagement: 'Mitgliederverwaltung',
+    proposerManagement: 'Antragsteller-Verwaltung',
+    proposalList: 'Vorschlagsliste',
+    quickActions: 'Schnellaktionen',
+    execute: 'Ausführen',
+    cancel: 'Abbrechen',
+    emergencyPrivilege: 'Notfall-Berechtigung',
+    revokeEmergency: '⚠️ Notfall-Berechtigung widerrufen (dauerhaft)',
+    revokeWarning: 'Nach Widerruf ist Notfall-Auszahlung dauerhaft deaktiviert',
+    recipientLabel: 'Empfängeradresse',
+    amountLabel: 'Betrag (0 = Alle)',
+    withdraw: 'Auszahlen'
   },
 
-  // Español (保留原有内容)
+  // ==================== Español (简化版，保持结构一致) ====================
   'es': {
     appName: '⛏️ Bit Super Miner',
     connect: 'Conectar Wallet',
@@ -313,16 +474,15 @@ export const translations = {
     refresh: 'Actualizar',
     copy: 'Copiar',
     copied: '✓ Copiado',
-    
+    loading: 'Cargando...',
+    close: 'Cerrar',
     usdtBalance: 'Saldo USDT',
     smaBalance: 'Saldo SMA',
     currentPrice: 'Precio Actual',
     marketPrice: 'Precio de Mercado',
-    
     inviteCode: 'Código de Invitación',
     generateInviteCode: 'Generar Código',
     generating: 'Generando...',
-    
     myAssets: 'Mis Activos',
     depositPrincipal: 'Depósito Principal',
     remainingPrincipal: 'Principal Restante',
@@ -330,73 +490,109 @@ export const translations = {
     totalReward: 'Recompensa Total',
     claimReward: 'Reclamar Recompensa',
     claiming: 'Reclamando...',
-    
     deposit: 'Depositar',
     withdraw: 'Retirar',
     enterAmount: 'Ingrese cantidad',
     depositing: 'Depositando...',
     withdrawing: 'Retirando...',
-    
     bindReferral: 'Vincular Referido',
     bindReferralDesc: 'Vincular Referido (requiere 0.001 BNB)',
     enterAddress: 'Ingrese dirección',
     binding: 'Vinculando...',
-    
     teamNetwork: 'Red de Equipo',
     networkHashrate: 'Hashrate de Red',
-    
     becomeNode: 'Convertirse en Nodo',
     nodeTitle: '🌟 Convertirse en Nodo SMA',
     nodeBenefits: '💎 Beneficios de Nodo:',
-    nodeBenefit1: 'Impuesto de Transacción: 60% de las tarifas de trading para nodos',
-    nodeBenefit2: 'Bonificación de Minería: 70% extra según volumen minado',
+    nodeBenefit1: '60% de tarifas de trading para nodos',
+    nodeBenefit2: '70% extra según volumen minado',
     nodeBenefit3: 'Ingresos Pasivos: Reclamo automático',
-    nodeBenefit4: 'Plazas Limitadas: Solo 99 nodos, primero en llegar',
+    nodeBenefit4: 'Solo 99 nodos, primero en llegar',
     nodePrice: '1000 USDT',
-    nodeDesc: 'Bloquee su estado de nodo, beneficios de por vida',
-    nodeAgree: 'He leído y acepto convertirme en Nodo SMA, confirmo pago de 1000 USDT',
+    nodeDesc: 'Bloquee su estado de nodo',
+    nodeAgree: 'Acepto convertirme en Nodo SMA, pago 1000 USDT',
     nodeApply: '💎 Solicitar Ahora, Pagar 1000 USDT',
     nodeProcessing: 'Procesando...',
-    nodeSuccess: '🎉 ¡Felicidades! Ahora es un Nodo SMA. Los beneficios se activarán automáticamente.',
+    nodeSuccess: '🎉 ¡Felicidades! Ahora es un Nodo SMA',
     nodeAddressLabel: 'El pago USDT se enviará a la dirección del nodo',
-    
     bindReferralModal: 'Vincular Referido',
     enterInviteCode: 'Ingrese código de invitación',
-    inviteCodePlaceholder: 'Ingrese código de 8 dígitos',
+    inviteCodePlaceholder: 'Código de 8 dígitos',
     bind: 'Vincular',
     skip: 'Omitir',
-    
     miningPool: 'Pool de Minería',
     nodeBadge: 'Nodo',
-    
     maintenance: 'Mantenimiento',
     success: 'Éxito',
     failed: 'Falló',
-    
-    pleaseConnectWallet: 'Por favor conecte su wallet primero',
-    pleaseEnterValidAddress: 'Por favor ingrese una dirección válida',
-    pleaseEnterInviteCode: 'Por favor ingrese código de invitación',
-    pleaseAgreeTerms: 'Por favor lea y acepte los términos del nodo',
+    pleaseConnectWallet: 'Conecte su wallet primero',
+    pleaseEnterValidAddress: 'Dirección válida',
+    pleaseEnterInviteCode: 'Ingrese código de invitación',
+    pleaseAgreeTerms: 'Acepte los términos del nodo',
     depositSuccess: '¡Depósito exitoso!',
     depositFailed: 'Depósito fallido: ',
     withdrawSuccess: '¡Retiro exitoso!',
     withdrawFailed: 'Retiro fallido: ',
-    claimSuccess: '¡Recompensa reclamada con éxito!',
+    claimSuccess: '¡Recompensa reclamada!',
     claimFailed: 'Reclamo fallido: ',
     bindSuccess: '¡Vinculación exitosa!',
     bindFailed: 'Vinculación fallida: ',
-    generateCodeSuccess: '¡Código generado con éxito!',
+    generateCodeSuccess: '¡Código generado!',
     generateCodeFailed: 'Error al generar código: ',
-    copyFailed: 'Error al copiar, por favor copie manualmente: ',
+    copyFailed: 'Error al copiar: ',
     paymentFailed: 'Pago fallido: ',
-    
     smaProgress: 'Progreso SMA',
     totalSupply: 'Suministro Total',
-    
-    loading: 'Cargando...',
     noMembers: 'Aún no hay miembros',
-    inviteFriends: '¡Invita amigos a unirse y crecer juntos!',
-    close: 'Cerrar'
+    inviteFriends: '¡Invita amigos a unirse!',
+    poolPanelTitle: 'Panel de Pool de Minería',
+    totalPoolReward: 'Recompensa Total del Pool',
+    remainingCap: 'Límite Restante',
+    teamTotalMining: 'Minería Total del Equipo',
+    poolBenefits: 'Beneficios del Pool',
+    poolBenefit1: '5% de recompensas de referidos',
+    poolBenefit2: 'Válido 45 días, se reinicia con cada recompensa',
+    poolBenefit3: 'Límite: 2x depósito neto',
+    poolBenefit4: 'Expira tras 45 días sin recompensa',
+    nodePanelTitle: 'Panel de Nodo',
+    nodePoolInfo: 'Información del Pool de Nodos',
+    pendingTotal: 'Total Pendiente',
+    nextDistribution: 'Próxima Distribución',
+    myEarnings: 'Mis Ganancias',
+    claimedNodeReward: 'Recompensa de Nodo Recibida',
+    periodContribution: 'Contribución del Período',
+    estimatedNext: 'Próxima Estimada',
+    nodeRules: 'Reglas de Distribución',
+    nodeRule1: 'Distribuido cada 7 días',
+    nodeRule2: '30% compartido igualmente',
+    nodeRule3: '70% según contribución del período',
+    nodeRule4: 'Mayor contribución = más recompensas',
+    governanceTitle: 'Votación de Gobernanza',
+    memberCountText: 'Miembros',
+    createProposal: 'Crear Propuesta',
+    activeProposals: 'Propuestas Activas',
+    noActiveProposals: 'No hay propuestas activas',
+    proposalIdText: 'Propuesta',
+    requiredVotes: 'Votos Necesarios',
+    voteYes: 'Sí',
+    voteNo: 'No',
+    alreadyVoted: 'Ya Votó',
+    createProposalModal: 'Crear Propuesta',
+    recipientAddress: 'Dirección Destinataria',
+    amountUSDT: 'Monto (USDT)',
+    creating: 'Creando...',
+    memberManagement: 'Gestión de Miembros',
+    proposerManagement: 'Gestión de Proponentes',
+    proposalList: 'Lista de Propuestas',
+    quickActions: 'Acciones Rápidas',
+    execute: 'Ejecutar',
+    cancel: 'Cancelar',
+    emergencyPrivilege: 'Privilegio de Emergencia',
+    revokeEmergency: '⚠️ Revocar Privilegio de Emergencia (Permanente)',
+    revokeWarning: 'Después de revocar, el retiro de emergencia se desactivará',
+    recipientLabel: 'Dirección Destinataria',
+    amountLabel: 'Monto (0 = Todo)',
+    withdraw: 'Retirar'
   }
 };
 
