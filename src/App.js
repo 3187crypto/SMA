@@ -124,15 +124,15 @@ function App() {
     checkIsPool();
   }, [currentAccount, miningContract]);
 
-  const checkAndShowInviteModal = async () => {
+  const checkAndShowInviteModal = async (cumulativeDeposited) => {
   // 用户主动跳过
   if (sessionStorage.getItem('inviteSkipped') === 'true') return;
   
   // 已有邀请码
   if (myInviteCode) return;
   
-  // 已有存款记录
-  if (parseFloat(userInfo.cumulativeDeposited) > 0) return;
+  // 已有存款记录（使用传入的参数）
+  if (parseFloat(cumulativeDeposited) > 0) return;
   
   // 已被他人绑定
   try {
@@ -197,7 +197,9 @@ function App() {
         setIsNode(nodeData.isNode);
       } catch (e) {}
       
-      await checkAndShowInviteModal();
+      // 计算格式化后的存款金额
+        const formattedCumulativeDeposited = ethers.utils.formatEther(cumulativeDeposited || 0);
+      await checkAndShowInviteModal(formattedCumulativeDeposited);
       
     } catch (error) {
       console.error(error);
