@@ -158,7 +158,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   // 取消矿池资格
   const cancelPool = async (poolAddress) => {
     const shortAddr = `${poolAddress.slice(0, 8)}...${poolAddress.slice(-6)}`;
-    if (!confirm(`确定要取消矿池 ${shortAddr} 的资格吗？\n此操作不可逆。`)) {
+    if (!window.confirm(`确定要取消矿池 ${shortAddr} 的资格吗？\n此操作不可逆。`)) {
       return;
     }
     setLoading(true);

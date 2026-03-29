@@ -1,6 +1,7 @@
 // src/services/poolPerformance.js
 import { supabase } from '../supabaseClient';
 import { ethers } from 'ethers';
+import { getDirectDownlines } from './teamStats';
 
 // 配置
 const BASE_REQUIREMENT = 1000;  // 基础要求 1000 SMA
