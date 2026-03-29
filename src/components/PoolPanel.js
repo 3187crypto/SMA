@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { getCurrentLanguage, t } from '../i18n';
+import PoolHealthMonitor from './PoolHealthMonitor';
 
 const PoolPanel = ({ contract, userAddress, onClose }) => {
   const [loading, setLoading] = useState(true);
@@ -83,6 +84,12 @@ const PoolPanel = ({ contract, userAddress, onClose }) => {
                   <li className="flex items-start gap-2"><span className="text-amber-500">•</span><span>{tr('poolBenefit4')}</span></li>
                 </ul>
               </div>
+              
+              {/* ✅ 矿池健康度监控 - 添加在这里 */}
+              <PoolHealthMonitor 
+                contract={contract} 
+                poolAddress={userAddress}
+              />
             </>
           )}
         </div>
