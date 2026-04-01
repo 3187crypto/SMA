@@ -164,25 +164,36 @@ function App() {
   };
 
   const loadUserData = async () => {
-    const currentAccount = account || manualAccount;
-    if (!currentAccount || !miningContract) return;
-    try {
-      const info = await miningContract.users(currentAccount);
-      const depositBase = info.depositBase || info[0];
-      const remainingDeposit = info.remainingDeposit || info[1];
-      const pendingRewardVal = info.pendingReward || info[3];
-      const cumulativeDeposited = info.cumulativeDeposited || info[4];
-      const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
-      const totalRewarded = info.totalMiningRewarded || info[6];
-      
-      setUserInfo({
-        depositBase: ethers.utils.formatEther(depositBase || 0),
-        remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
-        pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
-        cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
-        cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
-        totalRewarded: ethers.utils.formatEther(totalRewarded || 0)
-      });
+  const currentAccount = account || manualAccount;
+  if (!currentAccount || !miningContract) return;
+  try {
+    // 1. 获取用户基本信息
+    const info = await miningContract.users(currentAccount);
+    const depositBase = info.depositBase || info[0];
+    const remainingDeposit = info.remainingDeposit || info[1];
+    const pendingRewardVal = info.pendingReward || info[3];
+    const cumulativeDeposited = info.cumulativeDeposited || info[4];
+    const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
+    
+    // 2. 获取奖励明细（新函数）
+    const [miningReward, referralReward, poolReward, pendingRewardAmount, remainingCap1] = 
+      await miningContract.getUserRewardBreakdown(currentAccount);
+    
+    // 3. 获取节点奖励明细（新函数）
+    const [miningRewardFromNode, nodeRewardClaimed, totalReward, lastSnapshot, remainingCap2] = 
+      await miningContract.getNodeRealEarnings(currentAccount);
+    
+    // 4. 获取待领取奖励
+    const pending = await miningContract.pendingReward(currentAccount);
+    
+    setUserInfo({
+      depositBase: ethers.utils.formatEther(depositBase || 0),
+      remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
+      pendingReward: ethers.utils.formatEther(pending),
+      cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
+      cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
+      totalRewarded: ethers.utils.formatEther(totalReward || 0)  // 使用 totalReward
+    });
 
       const reward = await miningContract.pendingReward(currentAccount);
       setPendingReward(ethers.utils.formatEther(reward));

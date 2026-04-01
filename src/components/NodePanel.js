@@ -1,4 +1,3 @@
-// src/components/NodePanel.js
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { getCurrentLanguage, t } from '../i18n';
@@ -10,10 +9,13 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
   const [isMember, setIsMember] = useState(false);
   const [isProposer, setIsProposer] = useState(false);
   const [nodeData, setNodeData] = useState({
-    totalRewardedFromNode: '0',
-    periodContribution: '0',
-    estimatedNextReward: '0',
-    pendingNodeRewards: '0',
+    miningReward: '0',           // 挖矿奖励（已领取）
+    nodeRewardClaimed: '0',      // 节点奖励（已领取）
+    totalReward: '0',            // 总奖励
+    remainingCap: '0',           // 剩余额度
+    periodContribution: '0',     // 本期挖矿贡献
+    estimatedNextReward: '0',    // 预计下次获得
+    pendingNodeRewards: '0',     // 节点池待分配总额
     timeToNextDistribution: '0'
   });
 
@@ -24,35 +26,42 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
       if (!contract || !userAddress) return;
       setLoading(true);
       try {
-        // 获取节点信息
-        const nodeInfo = await contract.nodes(userAddress);
-        const totalRewardedFromNode = ethers.utils.formatEther(nodeInfo.totalRewardedFromNode);
-        const lastSnapshotTotal = ethers.utils.formatEther(nodeInfo.lastSnapshotTotal);
+        // ========== 1. 获取节点真实收益（新函数，5个返回值） ==========
+        const [miningReward, nodeRewardClaimed, totalReward, lastSnapshot, remainingCap] = 
+          await contract.getNodeRealEarnings(userAddress);
         
+        // ========== 2. 获取用户挖矿总奖励（用于计算本期贡献） ==========
         const userInfo = await contract.users(userAddress);
         const totalMiningRewarded = ethers.utils.formatEther(userInfo.totalMiningRewarded);
-        const periodContribution = parseFloat(totalMiningRewarded) - parseFloat(lastSnapshotTotal);
+        const lastSnapshotFormatted = ethers.utils.formatEther(lastSnapshot);
+        const periodContribution = parseFloat(totalMiningRewarded) - parseFloat(lastSnapshotFormatted);
         
+        // ========== 3. 获取节点池信息 ==========
         const pendingNodeRewards = await contract.getNodePendingRewards();
         const pendingNodeRewardsFormatted = ethers.utils.formatEther(pendingNodeRewards);
         
+        // ========== 4. 获取节点列表计算贡献比例 ==========
         const nodeList = await contract.getNodeList();
         const nodeCount = nodeList.length;
         
+        // ========== 5. 计算所有节点的本期贡献总和 ==========
         let totalPeriodContribution = 0;
         for (let i = 0; i < nodeCount; i++) {
           const nodeAddr = nodeList[i];
-          const nodeInfoItem = await contract.nodes(nodeAddr);
+          const nodeInfo = await contract.nodes(nodeAddr);
           const nodeUserInfo = await contract.users(nodeAddr);
-          const nodeLastSnapshot = ethers.utils.formatEther(nodeInfoItem.lastSnapshotTotal);
+          const nodeLastSnapshot = ethers.utils.formatEther(nodeInfo.lastSnapshotTotal);
           const nodeTotalMining = ethers.utils.formatEther(nodeUserInfo.totalMiningRewarded);
           totalPeriodContribution += parseFloat(nodeTotalMining) - parseFloat(nodeLastSnapshot);
         }
         
+        // ========== 6. 计算预计下次获得 ==========
         let estimatedNextReward = 0;
         const totalRewards = parseFloat(pendingNodeRewardsFormatted);
         if (totalRewards > 0 && nodeCount > 0) {
+          // 30% 平均分配
           const equalShare = (totalRewards * 30 / 100) / nodeCount;
+          // 70% 按贡献分配
           let weightedShare = 0;
           if (totalPeriodContribution > 0 && periodContribution > 0) {
             weightedShare = (totalRewards * 70 / 100) * (periodContribution / totalPeriodContribution);
@@ -60,24 +69,32 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
           estimatedNextReward = equalShare + weightedShare;
         }
         
+        // ========== 7. 获取下次分配时间 ==========
         const lastDistributionTime = await contract.lastDistributionTime();
         const now = Math.floor(Date.now() / 1000);
         const nextDist = Number(lastDistributionTime) + 7 * 24 * 60 * 60;
         const timeToNext = nextDist > now ? nextDist - now : 0;
         
         setNodeData({
-          totalRewardedFromNode,
+          miningReward: ethers.utils.formatEther(miningReward),
+          nodeRewardClaimed: ethers.utils.formatEther(nodeRewardClaimed),
+          totalReward: ethers.utils.formatEther(totalReward),
+          remainingCap: ethers.utils.formatEther(remainingCap),
           periodContribution: periodContribution.toFixed(2),
           estimatedNextReward: estimatedNextReward.toFixed(2),
           pendingNodeRewards: pendingNodeRewardsFormatted,
           timeToNextDistribution: timeToNext
         });
         
-        // 获取成员和提案人状态
-        const memberStatus = await contract.isMember(userAddress);
-        setIsMember(memberStatus);
-        const proposerStatus = await contract.isProposer(userAddress);
-        setIsProposer(proposerStatus);
+        // ========== 8. 获取成员和提案人状态（治理功能） ==========
+        try {
+          const memberStatus = await contract.isMember(userAddress);
+          setIsMember(memberStatus);
+          const proposerStatus = await contract.isProposer(userAddress);
+          setIsProposer(proposerStatus);
+        } catch (e) {
+          console.log('治理功能可能未启用');
+        }
         
       } catch (error) {
         console.error('加载节点数据失败:', error);
@@ -90,7 +107,7 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
 
   const formatNumber = (num) => parseFloat(num).toFixed(2);
   const formatTime = (seconds) => {
-    if (seconds <= 0) return tr('nextDistribution') + ': ' + tr('soon');
+    if (seconds <= 0) return '即将分配';
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     if (days > 0) return `${days}天${hours}小时后`;
@@ -116,6 +133,7 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
             </div>
           ) : (
             <>
+              {/* 节点池信息卡片 */}
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4">
                 <p className="text-purple-800 text-sm font-medium mb-3">📊 {tr('nodePoolInfo')}</p>
                 <div className="space-y-3">
@@ -130,24 +148,44 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
                 </div>
               </div>
               
+              {/* 我的收益卡片 */}
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4">
                 <p className="text-green-800 text-sm font-medium mb-3">📈 {tr('myEarnings')}</p>
                 <div className="space-y-3">
+                  {/* 挖矿奖励（已领取） */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 text-sm">{tr('miningReward') || '挖矿奖励'}</span>
+                    <span className="text-lg font-bold text-blue-600">{formatNumber(nodeData.miningReward)} SMA</span>
+                  </div>
+                  {/* 节点奖励（已领取） */}
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 text-sm">{tr('claimedNodeReward')}</span>
-                    <span className="text-lg font-bold text-green-600">{formatNumber(nodeData.totalRewardedFromNode)} SMA</span>
+                    <span className="text-lg font-bold text-green-600">{formatNumber(nodeData.nodeRewardClaimed)} SMA</span>
                   </div>
+                  {/* 总奖励 */}
                   <div className="flex justify-between items-center">
+                    <span className="text-gray-600 text-sm">{tr('totalReward') || '总奖励'}</span>
+                    <span className="text-lg font-bold text-purple-600">{formatNumber(nodeData.totalReward)} SMA</span>
+                  </div>
+                  {/* 剩余额度 */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 text-sm">{tr('remainingCap') || '剩余额度'}</span>
+                    <span className="text-lg font-bold text-amber-600">{formatNumber(nodeData.remainingCap)} SMA</span>
+                  </div>
+                  {/* 本期挖矿贡献 */}
+                  <div className="flex justify-between items-center pt-2 border-t border-green-200">
                     <span className="text-gray-600 text-sm">{tr('periodContribution')}</span>
                     <span className="text-lg font-bold text-blue-600">{formatNumber(nodeData.periodContribution)} SMA</span>
                   </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-green-200">
+                  {/* 预计下次获得 */}
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600 text-sm">{tr('estimatedNext')}</span>
                     <span className="text-lg font-bold text-amber-600">≈ {formatNumber(nodeData.estimatedNextReward)} SMA</span>
                   </div>
                 </div>
               </div>
               
+              {/* 节点分配规则卡片 */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-gray-700 text-sm font-medium mb-3">📋 {tr('nodeRules')}</p>
                 <ul className="space-y-2 text-sm text-gray-600">
@@ -158,6 +196,7 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
                 </ul>
               </div>
               
+              {/* 治理投票模块（仅成员可见） */}
               <GovernancePanel 
                 contract={contract} 
                 userAddress={userAddress}
