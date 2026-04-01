@@ -21,6 +21,8 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [pendingNodeRewards, setPendingNodeRewards] = useState('0');
   const [nodeCount, setNodeCount] = useState(0);
   const [contractUSDTBalance, setContractUSDTBalance] = useState('0');
+  const [multisigBalance, setMultisigBalance] = useState('0');
+  const [multisigAddress] = useState('0x1B3C7af4dD3A3029d40f00fBe639466A5EEFbAE6');
   const [buybackAmount, setBuybackAmount] = useState('');
   const [liquidityAmount, setLiquidityAmount] = useState('');
   const [poolAddress, setPoolAddress] = useState('');
@@ -82,6 +84,16 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       setContractUSDTBalance(ethers.utils.formatEther(balance));
     } catch (error) {
       console.error('获取合约USDT余额失败:', error);
+    }
+  };
+
+  const loadMultisigBalance = async () => {
+    if (!usdtContract) return;
+    try {
+      const balance = await usdtContract.balanceOf(multisigAddress);
+      setMultisigBalance(ethers.utils.formatEther(balance));
+    } catch (error) {
+      console.error('获取多签钱包USDT余额失败:', error);
     }
   };
 
@@ -204,9 +216,11 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   useEffect(() => {
     loadPendingData();
     loadContractUSDTBalance();
+    loadMultisigBalance();
     const interval = setInterval(() => {
       loadPendingData();
       loadContractUSDTBalance();
+      loadMultisigBalance();
     }, 10000);
     return () => clearInterval(interval);
   }, [contract]);
@@ -1021,6 +1035,20 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                     onChange={(e) => setCancelProposalId(e.target.value)}
                   />
                   <button onClick={handleCancelProposal} className="px-3 py-2 bg-orange-600 text-white rounded-lg text-sm">取消</button>
+                </div>
+              </div>
+              
+              {/* ✅ 多签钱包余额 */}
+              <div className="border-t border-gray-700 pt-3">
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <span>🏦</span> 多签钱包 (Marketing Wallet)
+                </h4>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-gray-400 text-sm">USDT 余额:</span>
+                  <span className="text-white text-base font-medium">{parseFloat(multisigBalance).toFixed(2)}</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1 font-mono break-all">
+                  {multisigAddress}
                 </div>
               </div>
               
