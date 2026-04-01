@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ethers } from 'ethers';
 import { loadConfig, saveConfig } from '../services/ownerConfig';
 import { getCurrentLanguage, t } from '../i18n';
 import { supabase } from '../supabaseClient';
+import { USDT_ADDRESS, MINING_CONTRACT_ADDRESS } from '../contracts/addresses';
+import ERC20ABI from '../contracts/erc20.json';
 import { 
   getPoolPerformance, 
   getAllPoolsFromDB, 
@@ -18,6 +20,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [pendingBuyback, setPendingBuyback] = useState('0');
   const [pendingNodeRewards, setPendingNodeRewards] = useState('0');
   const [nodeCount, setNodeCount] = useState(0);
+  const [contractUSDTBalance, setContractUSDTBalance] = useState('0');
   const [buybackAmount, setBuybackAmount] = useState('');
   const [liquidityAmount, setLiquidityAmount] = useState('');
   const [poolAddress, setPoolAddress] = useState('');
@@ -46,6 +49,13 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
 
   const tr = (key) => t(currentLang, key);
 
+  // USDT 合约实例
+  const usdtContract = useMemo(() => {
+    if (!contract) return null;
+    const signer = contract.signer;
+    return new ethers.Contract(USDT_ADDRESS, ERC20ABI, signer);
+  }, [contract]);
+
   const loadPendingData = async () => {
     if (!contract) return;
     try {
@@ -62,6 +72,16 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       } catch (e) {}
     } catch (error) {
       console.error('加载资金池数据失败:', error);
+    }
+  };
+
+  const loadContractUSDTBalance = async () => {
+    if (!usdtContract) return;
+    try {
+      const balance = await usdtContract.balanceOf(MINING_CONTRACT_ADDRESS);
+      setContractUSDTBalance(ethers.utils.formatEther(balance));
+    } catch (error) {
+      console.error('获取合约USDT余额失败:', error);
     }
   };
 
@@ -167,7 +187,6 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       await tx.wait();
       showMessage(`矿池 ${shortAddr} 已取消资格`);
       
-      // 更新 Supabase
       await supabase
         .from('pool_performance')
         .update({ is_active: false })
@@ -184,7 +203,11 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
 
   useEffect(() => {
     loadPendingData();
-    const interval = setInterval(loadPendingData, 10000);
+    loadContractUSDTBalance();
+    const interval = setInterval(() => {
+      loadPendingData();
+      loadContractUSDTBalance();
+    }, 10000);
     return () => clearInterval(interval);
   }, [contract]);
 
@@ -268,7 +291,6 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       await tx.wait();
       showMessage(`成功添加矿池: ${poolAddress.slice(0,6)}...${poolAddress.slice(-4)}`);
       
-      // 添加到 Supabase
       const now = Math.floor(Date.now() / 1000);
       await supabase
         .from('pool_performance')
@@ -629,6 +651,10 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
           {activeTab === 'funds' && (
             <div className="bg-gray-800 rounded-xl p-4 space-y-4">
               <div className="space-y-2">
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-gray-400 text-base">💰 合约 USDT 余额:</span>
+                  <span className="text-white text-base font-medium">{parseFloat(contractUSDTBalance).toFixed(2)}</span>
+                </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-gray-400 text-base">待发放 USDT:</span>
                   <span className="text-white text-base font-medium">{parseFloat(pendingUSDT).toFixed(2)}</span>
