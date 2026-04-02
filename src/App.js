@@ -308,10 +308,21 @@ function App() {
   };
 
   const copyInviteLink = async () => {
-    const inviteLink = `${window.location.origin}/?ref=${myInviteCode}`;
-    await copyToClipboard(inviteLink);
+  const inviteLink = `${window.location.origin}/?ref=${myInviteCode}`;
+  try {
+    await navigator.clipboard.writeText(inviteLink);
     alert('邀请链接已复制！');
-  };
+  } catch (err) {
+    // 降级方案
+    const textarea = document.createElement('textarea');
+    textarea.value = inviteLink;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert('邀请链接已复制！');
+  }
+};
 
   const handleDeposit = async () => {
     if (submittingRef.current.deposit) return;
