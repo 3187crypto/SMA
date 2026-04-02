@@ -98,6 +98,20 @@ function App() {
     return new ethers.Contract(CULTURE_ADDRESS, ERC20ABI, signer);
   }, [library]);
 
+  // 获取 URL 中的邀请码参数
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    if (refCode && refCode.length >= 6 && !inviteCode && !myInviteCode) {
+      setInviteCode(refCode);
+      setTimeout(() => {
+        if (!myInviteCode && !sessionStorage.getItem('inviteSkipped')) {
+          setShowInviteModal(true);
+        }
+      }, 1000);
+    }
+  }, []);
+
   useEffect(() => {
     const getOwner = async () => {
       if (miningContract) {
@@ -124,25 +138,16 @@ function App() {
     checkIsPool();
   }, [currentAccount, miningContract]);
 
-  const checkAndShowInviteModal = async (cumulativeDeposited) => {
-  // 用户主动跳过
-  if (sessionStorage.getItem('inviteSkipped') === 'true') return;
-  
-  // 已有邀请码
-  if (myInviteCode) return;
-  
-  // 已有存款记录（使用传入的参数）
-  if (parseFloat(cumulativeDeposited) > 0) return;
-  
-  // 已被他人绑定
-  try {
-    const referrer = await miningContract.referrers(account);
-    if (referrer && referrer !== '0x0000000000000000000000000000000000000000') return;
-  } catch (e) {}
-  
-  // 所有条件都不满足，显示弹窗
-  setShowInviteModal(true);
-};
+  const checkAndShowInviteModal = async () => {
+    if (sessionStorage.getItem('inviteSkipped') === 'true') return;
+    if (myInviteCode) return;
+    if (parseFloat(userInfo.cumulativeDeposited) > 0) return;
+    try {
+      const referrer = await miningContract.referrers(account);
+      if (referrer && referrer !== '0x0000000000000000000000000000000000000000') return;
+    } catch (e) {}
+    setShowInviteModal(true);
+  };
 
   const connectWallet = async (connector) => {
     try {
@@ -164,36 +169,25 @@ function App() {
   };
 
   const loadUserData = async () => {
-  const currentAccount = account || manualAccount;
-  if (!currentAccount || !miningContract) return;
-  try {
-    // 1. 获取用户基本信息
-    const info = await miningContract.users(currentAccount);
-    const depositBase = info.depositBase || info[0];
-    const remainingDeposit = info.remainingDeposit || info[1];
-    const pendingRewardVal = info.pendingReward || info[3];
-    const cumulativeDeposited = info.cumulativeDeposited || info[4];
-    const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
-    
-    // 2. 获取奖励明细（新函数）
-    const [miningReward, referralReward, poolReward, pendingRewardAmount, remainingCap1] = 
-      await miningContract.getUserRewardBreakdown(currentAccount);
-    
-    // 3. 获取节点奖励明细（新函数）
-    const [miningRewardFromNode, nodeRewardClaimed, totalReward, lastSnapshot, remainingCap2] = 
-      await miningContract.getNodeRealEarnings(currentAccount);
-    
-    // 4. 获取待领取奖励
-    const pending = await miningContract.pendingReward(currentAccount);
-    
-    setUserInfo({
-      depositBase: ethers.utils.formatEther(depositBase || 0),
-      remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
-      pendingReward: ethers.utils.formatEther(pending),
-      cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
-      cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
-      totalRewarded: ethers.utils.formatEther(totalReward || 0)  // 使用 totalReward
-    });
+    const currentAccount = account || manualAccount;
+    if (!currentAccount || !miningContract) return;
+    try {
+      const info = await miningContract.users(currentAccount);
+      const depositBase = info.depositBase || info[0];
+      const remainingDeposit = info.remainingDeposit || info[1];
+      const pendingRewardVal = info.pendingReward || info[3];
+      const cumulativeDeposited = info.cumulativeDeposited || info[4];
+      const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
+      const totalRewarded = info.totalMiningRewarded || info[6];
+      
+      setUserInfo({
+        depositBase: ethers.utils.formatEther(depositBase || 0),
+        remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
+        pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
+        cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
+        cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
+        totalRewarded: ethers.utils.formatEther(totalRewarded || 0)
+      });
 
       const reward = await miningContract.pendingReward(currentAccount);
       setPendingReward(ethers.utils.formatEther(reward));
@@ -208,9 +202,7 @@ function App() {
         setIsNode(nodeData.isNode);
       } catch (e) {}
       
-      // 计算格式化后的存款金额
-        const formattedCumulativeDeposited = ethers.utils.formatEther(cumulativeDeposited || 0);
-      await checkAndShowInviteModal(formattedCumulativeDeposited);
+      await checkAndShowInviteModal();
       
     } catch (error) {
       console.error(error);
@@ -315,6 +307,12 @@ function App() {
     }
   };
 
+  const copyInviteLink = async () => {
+    const inviteLink = `${window.location.origin}/?ref=${myInviteCode}`;
+    await copyToClipboard(inviteLink);
+    alert('邀请链接已复制！');
+  };
+
   const handleDeposit = async () => {
     if (submittingRef.current.deposit) return;
     if (!depositAmount || parseFloat(depositAmount) <= 0) return;
@@ -364,7 +362,9 @@ function App() {
     submittingRef.current.claim = true;
     setClaimLoading(true);
     try {
-      const tx = await miningContract.claimReward();
+      const tx = await miningContract.claimReward({
+        gasLimit: 500000
+      });
       await tx.wait();
       alert(tr('claimSuccess'));
       loadUserData();
@@ -435,6 +435,8 @@ function App() {
       alert(tr('bindSuccess'));
       setShowInviteModal(false);
       setInviteCode('');
+      // 清除 URL 中的 ref 参数
+      window.history.replaceState({}, document.title, window.location.pathname);
       initializeTeamData(miningContract, 87806411).then(() => {
         saveCache();
         window.dispatchEvent(new CustomEvent('teamDataUpdated', {
@@ -495,8 +497,8 @@ function App() {
       <div className="mining-bg-layer"></div>
       <div className="mining-overlay"></div>
       
-      <div className="relative w-full py-8 z-10">
-        <div className="w-full md:max-w-2xl md:mx-auto">
+      <div className="relative w-full px-4 py-8 z-10">
+        <div className="max-w-2xl mx-auto">
         <header className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 mb-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <h1 className="text-3xl font-bold text-gray-800">{tr('appName')}</h1>
@@ -516,35 +518,32 @@ function App() {
                     <span className="text-gray-600 text-sm">
                       {currentAccount?.slice(0,6)}...{currentAccount?.slice(-4)}
                     </span>
-                  {/* 矿池徽章 */}
-{isPool && (
-  <button 
-    onClick={() => {
-      if (featureConfig.features.showPoolBadge) {
-        setShowPoolPanel(true);
-      }
-    }}
-    className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full flex items-center hover:bg-yellow-200 transition cursor-pointer"
-  >
-    ⛏️ {tr('miningPool')}
-  </button>
-)}
-
-{/* 节点徽章 */}
-{isNode && (
-  <button 
-    onClick={() => {
-      if (featureConfig.features.showNodeBadge) {
-        setShowNodePanel(true);
-      }
-    }}
-    className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full flex items-center hover:bg-purple-200 transition cursor-pointer"
-  >
-    🌟 {tr('nodeBadge')}
-  </button>
-)}
+                    {isPool && (
+                      <button 
+                        onClick={() => {
+                          if (featureConfig.features.showPoolBadge) {
+                            setShowPoolPanel(true);
+                          }
+                        }}
+                        className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full flex items-center hover:bg-yellow-200 transition cursor-pointer"
+                      >
+                        ⛏️ {tr('miningPool')}
+                      </button>
+                    )}
+                    {isNode && (
+                      <button 
+                        onClick={() => {
+                          if (featureConfig.features.showNodeBadge) {
+                            setShowNodePanel(true);
+                          }
+                        }}
+                        className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full flex items-center hover:bg-purple-200 transition cursor-pointer"
+                      >
+                        🌟 {tr('nodeBadge')}
+                      </button>
+                    )}
                   </div>
-                       {isOwner && (
+                  {isOwner && (
                     <button onClick={() => setShowOwnerMenu(!showOwnerMenu)} className="p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
                       ⚙️
                     </button>
@@ -590,12 +589,23 @@ function App() {
                 ) : (
                   <div className="flex items-center space-x-2">
                     <span className="font-mono font-bold text-blue-600">{myInviteCode}</span>
-                    <button onClick={() => copyToClipboard(myInviteCode)} className="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-xs">
-                      {tr('copy')}
+                    <button onClick={copyInviteLink} className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600">
+                      📋 复制邀请链接
                     </button>
                   </div>
                 )}
               </div>
+              {myInviteCode && (
+                <div className="mt-3 text-center">
+                  <div className="bg-gray-50 p-2 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">邀请链接：</p>
+                    <p className="text-xs text-blue-600 break-all font-mono">
+                      {`${window.location.origin}/?ref=${myInviteCode}`}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">分享链接，好友注册自动绑定</p>
+                </div>
+              )}
               <div className="mt-2 text-center text-xs text-gray-400">
                 比特超级矿工 · SMA
               </div>
@@ -667,7 +677,14 @@ function App() {
             <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
               <h2 className="text-xl font-bold mb-2">{tr('bindReferralModal')}</h2>
               <p className="text-gray-600 mb-4 text-sm">{tr('enterInviteCode')}</p>
-              <input type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} placeholder={tr('inviteCodePlaceholder')} className="w-full p-2 border rounded-lg mb-4" />
+              <input 
+                type="text" 
+                value={inviteCode} 
+                onChange={(e) => setInviteCode(e.target.value)} 
+                placeholder={tr('inviteCodePlaceholder')} 
+                className="w-full p-2 border rounded-lg mb-4" 
+                readOnly={inviteCode && window.location.search.includes('ref')}
+              />
               <div className="flex flex-col gap-2">
                 <button onClick={handleRegisterWithInvite} disabled={inviteLoading || !inviteCode} className="py-2 bg-blue-600 text-white rounded-lg">绑定</button>
                 <button onClick={handleSkipInvite} className="py-2 bg-gray-500 text-white rounded-lg">暂不绑定</button>
@@ -730,9 +747,9 @@ function App() {
         {showOwnerMenu && (
           <OwnerMenu contract={miningContract} ownerAddress={ownerAddress} onClose={() => setShowOwnerMenu(false)} onConfigChange={setFeatureConfig} />
         )}
-      </div>  
-    </div>    
-  </div>     
+      </div>
+    </div>
+  </div>
   );
 }
 
