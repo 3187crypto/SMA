@@ -5,12 +5,16 @@ import { getCurrentLanguage, t } from '../i18n';
 import { supabase } from '../supabaseClient';
 import { USDT_ADDRESS, MINING_CONTRACT_ADDRESS } from '../contracts/addresses';
 import ERC20ABI from '../contracts/erc20.json';
+import GovernanceABI from '../contracts/governance.json';
 import { 
   getPoolPerformance, 
   getAllPoolsFromDB, 
   syncAllPools, 
   logPerformanceHistory 
 } from '../services/poolPerformance';
+
+// 投票合约地址
+const GOVERNANCE_CONTRACT_ADDRESS = "0x1B3C7af4dD3A3029d40f00fBe639466A5EEFbAE6";
 
 const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [config, setConfig] = useState(loadConfig());
@@ -48,6 +52,11 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [poolList, setPoolList] = useState([]);
   const [poolListLoading, setPoolListLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  
+  // 管理员创建提案状态
+  const [adminProposalTarget, setAdminProposalTarget] = useState('');
+  const [adminProposalAmount, setAdminProposalAmount] = useState('');
+  const [adminCreating, setAdminCreating] = useState(false);
 
   const tr = (key) => t(currentLang, key);
 
@@ -56,6 +65,13 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     if (!contract) return null;
     const signer = contract.signer;
     return new ethers.Contract(USDT_ADDRESS, ERC20ABI, signer);
+  }, [contract]);
+
+  // 投票合约实例
+  const governanceContract = useMemo(() => {
+    if (!contract) return null;
+    const signer = contract.signer;
+    return new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernanceABI, signer);
   }, [contract]);
 
   const loadPendingData = async () => {
@@ -97,25 +113,23 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     }
   };
 
+  // 加载提案列表（使用投票合约）
   const loadProposals = async () => {
-    if (!contract) return;
+    if (!governanceContract) return;
     setProposalLoading(true);
     try {
+      // 获取提案总数
       let totalProposals = 0;
       try {
-        totalProposals = await contract.proposalsLength();
+        totalProposals = await governanceContract.proposalsLength();
       } catch {
-        try {
-          totalProposals = Number(await contract.getProposalCount?.()) || 0;
-        } catch {
-          totalProposals = 0;
-        }
+        totalProposals = 0;
       }
       
       const proposals = [];
       for (let i = 0; i < totalProposals; i++) {
         try {
-          const proposal = await contract.getProposal(i);
+          const proposal = await governanceContract.getProposal(i);
           proposals.push({
             id: i,
             target: proposal.target,
@@ -213,44 +227,208 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     }
   };
 
-  useEffect(() => {
-    loadPendingData();
-    loadContractUSDTBalance();
-    loadMultisigBalance();
-    const interval = setInterval(() => {
-      loadPendingData();
-      loadContractUSDTBalance();
-      loadMultisigBalance();
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [contract]);
-
-  useEffect(() => {
-    if (activeTab === 'governance') {
+  // ========== 治理功能（使用投票合约） ==========
+  
+  const handleAddMember = async () => {
+    if (!memberAddress || !ethers.utils.isAddress(memberAddress)) {
+      showMessage('请输入有效的钱包地址', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await governanceContract.addMember(memberAddress);
+      await tx.wait();
+      showMessage(`成功添加成员: ${memberAddress.slice(0,6)}...${memberAddress.slice(-4)}`);
+      setMemberAddress('');
       loadProposals();
+    } catch (error) {
+      showMessage('添加成员失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
     }
-    if (activeTab === 'pools') {
-      loadPoolList();
-    }
-  }, [activeTab, contract]);
-
-  const toggleFeature = (feature) => {
-    const newConfig = {
-      ...config,
-      features: { ...config.features, [feature]: !config.features[feature] }
-    };
-    setConfig(newConfig);
-    saveConfig(newConfig);
-    onConfigChange(newConfig);
-    showMessage(`${feature} 已${newConfig.features[feature] ? '开启' : '关闭'}`);
   };
 
-  const toggleMaintenance = () => {
-    const newConfig = { ...config, globalMaintenance: !config.globalMaintenance };
-    setConfig(newConfig);
-    saveConfig(newConfig);
-    onConfigChange(newConfig);
-    showMessage(`全局维护模式已${newConfig.globalMaintenance ? '开启' : '关闭'}`);
+  const handleRemoveMember = async () => {
+    if (!removeMemberAddress || !ethers.utils.isAddress(removeMemberAddress)) {
+      showMessage('请输入有效的钱包地址', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await governanceContract.removeMember(removeMemberAddress);
+      await tx.wait();
+      showMessage(`成功移除成员: ${removeMemberAddress.slice(0,6)}...${removeMemberAddress.slice(-4)}`);
+      setRemoveMemberAddress('');
+      loadProposals();
+    } catch (error) {
+      showMessage('移除成员失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddProposer = async () => {
+    if (!proposerAddress || !ethers.utils.isAddress(proposerAddress)) {
+      showMessage('请输入有效的钱包地址', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await governanceContract.addProposer(proposerAddress);
+      await tx.wait();
+      showMessage(`成功添加提案人: ${proposerAddress.slice(0,6)}...${proposerAddress.slice(-4)}`);
+      setProposerAddress('');
+    } catch (error) {
+      showMessage('添加提案人失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveProposer = async () => {
+    if (!removeProposerAddress || !ethers.utils.isAddress(removeProposerAddress)) {
+      showMessage('请输入有效的钱包地址', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await governanceContract.removeProposer(removeProposerAddress);
+      await tx.wait();
+      showMessage(`成功移除提案人: ${removeProposerAddress.slice(0,6)}...${removeProposerAddress.slice(-4)}`);
+      setRemoveProposerAddress('');
+    } catch (error) {
+      showMessage('移除提案人失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExecuteProposal = async () => {
+    if (!executeProposalId || parseInt(executeProposalId) < 0) {
+      showMessage('请输入有效的提案ID', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await governanceContract.executeProposal(parseInt(executeProposalId));
+      await tx.wait();
+      showMessage(`成功执行提案 #${executeProposalId}`);
+      setExecuteProposalId('');
+      loadProposals();
+    } catch (error) {
+      showMessage('执行提案失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelProposal = async () => {
+    if (!cancelProposalId || parseInt(cancelProposalId) < 0) {
+      showMessage('请输入有效的提案ID', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const tx = await governanceContract.cancelProposal(parseInt(cancelProposalId));
+      await tx.wait();
+      showMessage(`成功取消提案 #${cancelProposalId}`);
+      setCancelProposalId('');
+      loadProposals();
+    } catch (error) {
+      showMessage('取消提案失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExecuteProposalById = async (proposalId) => {
+    if (typeof proposalId !== 'number') return;
+    setLoading(true);
+    try {
+      const tx = await governanceContract.executeProposal(proposalId);
+      await tx.wait();
+      showMessage(`成功执行提案 #${proposalId}`);
+      loadProposals();
+    } catch (error) {
+      showMessage('执行提案失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelProposalById = async (proposalId) => {
+    if (typeof proposalId !== 'number') return;
+    setLoading(true);
+    try {
+      const tx = await governanceContract.cancelProposal(proposalId);
+      await tx.wait();
+      showMessage(`成功取消提案 #${proposalId}`);
+      loadProposals();
+    } catch (error) {
+      showMessage('取消提案失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 管理员创建提案
+  const handleAdminCreateProposal = async () => {
+    if (!adminProposalTarget || !adminProposalAmount) {
+      showMessage('请填写完整信息', 'error');
+      return;
+    }
+    if (!ethers.utils.isAddress(adminProposalTarget)) {
+      showMessage('请输入有效的地址', 'error');
+      return;
+    }
+    setAdminCreating(true);
+    try {
+      const amount = ethers.utils.parseEther(adminProposalAmount);
+      const tx = await governanceContract.createProposal(adminProposalTarget, amount);
+      await tx.wait();
+      showMessage('提案创建成功！');
+      setAdminProposalTarget('');
+      setAdminProposalAmount('');
+      loadProposals();
+    } catch (error) {
+      showMessage('创建提案失败: ' + error.message, 'error');
+    } finally {
+      setAdminCreating(false);
+    }
+  };
+
+  // 紧急权限功能（使用挖矿合约）
+  const handleEmergencyWithdraw = async () => {
+    if (!emergencyRecipient || !ethers.utils.isAddress(emergencyRecipient)) {
+      showMessage('请输入有效的接收地址', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const amount = emergencyAmount ? ethers.utils.parseEther(emergencyAmount) : 0;
+      const tx = await contract.emergencyWithdraw(emergencyRecipient, amount);
+      await tx.wait();
+      showMessage(`紧急提款成功，接收方: ${emergencyRecipient.slice(0,6)}...`);
+      setEmergencyRecipient('');
+      setEmergencyAmount('');
+    } catch (error) {
+      showMessage('紧急提款失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRevokeEmergency = async () => {
+    setLoading(true);
+    try {
+      const tx = await contract.revokeEmergencyPrivilege();
+      await tx.wait();
+      showMessage('紧急权限已永久撤销');
+    } catch (error) {
+      showMessage('撤销紧急权限失败: ' + error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBuyback = async () => {
@@ -381,182 +559,6 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     }
   };
 
-  // 治理功能
-  const handleAddMember = async () => {
-    if (!memberAddress || !ethers.utils.isAddress(memberAddress)) {
-      showMessage('请输入有效的钱包地址', 'error');
-      return;
-    }
-    setLoading(true);
-    try {
-      const tx = await contract.addMember(memberAddress);
-      await tx.wait();
-      showMessage(`成功添加成员: ${memberAddress.slice(0,6)}...${memberAddress.slice(-4)}`);
-      setMemberAddress('');
-      loadProposals();
-    } catch (error) {
-      showMessage('添加成员失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRemoveMember = async () => {
-    if (!removeMemberAddress || !ethers.utils.isAddress(removeMemberAddress)) {
-      showMessage('请输入有效的钱包地址', 'error');
-      return;
-    }
-    setLoading(true);
-    try {
-      const tx = await contract.removeMember(removeMemberAddress);
-      await tx.wait();
-      showMessage(`成功移除成员: ${removeMemberAddress.slice(0,6)}...${removeMemberAddress.slice(-4)}`);
-      setRemoveMemberAddress('');
-      loadProposals();
-    } catch (error) {
-      showMessage('移除成员失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddProposer = async () => {
-    if (!proposerAddress || !ethers.utils.isAddress(proposerAddress)) {
-      showMessage('请输入有效的钱包地址', 'error');
-      return;
-    }
-    setLoading(true);
-    try {
-      const tx = await contract.addProposer(proposerAddress);
-      await tx.wait();
-      showMessage(`成功添加提案人: ${proposerAddress.slice(0,6)}...${proposerAddress.slice(-4)}`);
-      setProposerAddress('');
-    } catch (error) {
-      showMessage('添加提案人失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRemoveProposer = async () => {
-    if (!removeProposerAddress || !ethers.utils.isAddress(removeProposerAddress)) {
-      showMessage('请输入有效的钱包地址', 'error');
-      return;
-    }
-    setLoading(true);
-    try {
-      const tx = await contract.removeProposer(removeProposerAddress);
-      await tx.wait();
-      showMessage(`成功移除提案人: ${removeProposerAddress.slice(0,6)}...${removeProposerAddress.slice(-4)}`);
-      setRemoveProposerAddress('');
-    } catch (error) {
-      showMessage('移除提案人失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExecuteProposal = async () => {
-    if (!executeProposalId || parseInt(executeProposalId) < 0) {
-      showMessage('请输入有效的提案ID', 'error');
-      return;
-    }
-    setLoading(true);
-    try {
-      const tx = await contract.executeProposal(parseInt(executeProposalId));
-      await tx.wait();
-      showMessage(`成功执行提案 #${executeProposalId}`);
-      setExecuteProposalId('');
-      loadProposals();
-    } catch (error) {
-      showMessage('执行提案失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelProposal = async () => {
-    if (!cancelProposalId || parseInt(cancelProposalId) < 0) {
-      showMessage('请输入有效的提案ID', 'error');
-      return;
-    }
-    setLoading(true);
-    try {
-      const tx = await contract.cancelProposal(parseInt(cancelProposalId));
-      await tx.wait();
-      showMessage(`成功取消提案 #${cancelProposalId}`);
-      setCancelProposalId('');
-      loadProposals();
-    } catch (error) {
-      showMessage('取消提案失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExecuteProposalById = async (proposalId) => {
-    if (typeof proposalId !== 'number') return;
-    setLoading(true);
-    try {
-      const tx = await contract.executeProposal(proposalId);
-      await tx.wait();
-      showMessage(`成功执行提案 #${proposalId}`);
-      loadProposals();
-    } catch (error) {
-      showMessage('执行提案失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelProposalById = async (proposalId) => {
-    if (typeof proposalId !== 'number') return;
-    setLoading(true);
-    try {
-      const tx = await contract.cancelProposal(proposalId);
-      await tx.wait();
-      showMessage(`成功取消提案 #${proposalId}`);
-      loadProposals();
-    } catch (error) {
-      showMessage('取消提案失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEmergencyWithdraw = async () => {
-    if (!emergencyRecipient || !ethers.utils.isAddress(emergencyRecipient)) {
-      showMessage('请输入有效的接收地址', 'error');
-      return;
-    }
-    setLoading(true);
-    try {
-      const amount = emergencyAmount ? ethers.utils.parseEther(emergencyAmount) : 0;
-      const tx = await contract.emergencyWithdraw(emergencyRecipient, amount);
-      await tx.wait();
-      showMessage(`紧急提款成功，接收方: ${emergencyRecipient.slice(0,6)}...`);
-      setEmergencyRecipient('');
-      setEmergencyAmount('');
-    } catch (error) {
-      showMessage('紧急提款失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRevokeEmergency = async () => {
-    setLoading(true);
-    try {
-      const tx = await contract.revokeEmergencyPrivilege();
-      await tx.wait();
-      showMessage('紧急权限已永久撤销');
-    } catch (error) {
-      showMessage('撤销紧急权限失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const showMessage = (msg, type = 'success') => {
     setMessage({ text: msg, type });
     setTimeout(() => setMessage(null), 3000);
@@ -572,6 +574,46 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     showMinted: '发行总量',
     showPoolBadge: '矿池面板',
     showNodeBadge: '节点面板'
+  };
+
+  useEffect(() => {
+    loadPendingData();
+    loadContractUSDTBalance();
+    loadMultisigBalance();
+    const interval = setInterval(() => {
+      loadPendingData();
+      loadContractUSDTBalance();
+      loadMultisigBalance();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [contract]);
+
+  useEffect(() => {
+    if (activeTab === 'governance') {
+      loadProposals();
+    }
+    if (activeTab === 'pools') {
+      loadPoolList();
+    }
+  }, [activeTab, contract, governanceContract]);
+
+  const toggleFeature = (feature) => {
+    const newConfig = {
+      ...config,
+      features: { ...config.features, [feature]: !config.features[feature] }
+    };
+    setConfig(newConfig);
+    saveConfig(newConfig);
+    onConfigChange(newConfig);
+    showMessage(`${feature} 已${newConfig.features[feature] ? '开启' : '关闭'}`);
+  };
+
+  const toggleMaintenance = () => {
+    const newConfig = { ...config, globalMaintenance: !config.globalMaintenance };
+    setConfig(newConfig);
+    saveConfig(newConfig);
+    onConfigChange(newConfig);
+    showMessage(`全局维护模式已${newConfig.globalMaintenance ? '开启' : '关闭'}`);
   };
 
   return (
@@ -889,8 +931,38 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
 
           {activeTab === 'governance' && (
             <div className="bg-gray-800 rounded-xl p-4 space-y-4">
-              {/* 成员管理 */}
+              {/* 创建提案（管理员） */}
               <div>
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <span>📝</span> 创建提案
+                </h4>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="收款地址"
+                    className="w-full p-2 rounded-lg bg-gray-700 text-white text-sm"
+                    value={adminProposalTarget}
+                    onChange={(e) => setAdminProposalTarget(e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    placeholder="金额 (USDT)"
+                    className="w-full p-2 rounded-lg bg-gray-700 text-white text-sm"
+                    value={adminProposalAmount}
+                    onChange={(e) => setAdminProposalAmount(e.target.value)}
+                  />
+                  <button
+                    onClick={handleAdminCreateProposal}
+                    disabled={adminCreating}
+                    className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {adminCreating ? '创建中...' : '创建提案'}
+                  </button>
+                </div>
+              </div>
+              
+              {/* 成员管理 */}
+              <div className="border-t border-gray-700 pt-3">
                 <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                   <span>👥</span> 成员管理
                 </h4>
@@ -1038,7 +1110,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                 </div>
               </div>
               
-              {/* ✅ 多签钱包余额 */}
+              {/* 多签钱包余额 */}
               <div className="border-t border-gray-700 pt-3">
                 <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                   <span>🏦</span> 多签钱包 (Marketing Wallet)
