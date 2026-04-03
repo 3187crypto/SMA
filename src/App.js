@@ -252,14 +252,18 @@ function App() {
   }
 };
 
-  // ✅ 弹窗判断函数（必须带两个参数）
   const checkAndShowInviteModal = async (hasDeposit, hasReferrer) => {
-    if (sessionStorage.getItem('inviteSkipped') === 'true') return;
-    if (myInviteCode) return;
-    if (hasDeposit) return;
-    if (hasReferrer) return;
-    setShowInviteModal(true);
-  };
+  // ✅ 方案三核心：只要满足任一条件，就永远不弹窗
+  if (myInviteCode) return;
+  if (hasDeposit) return;
+  if (hasReferrer) return;
+
+  // 用户主动跳过
+  if (sessionStorage.getItem('inviteSkipped') === 'true') return;
+
+  // 只有「无邀请码、无存款、无上级」才弹窗
+  setShowInviteModal(true);
+};
 
   const loadGlobalData = async () => {
     if (!miningContract) return;
