@@ -82,9 +82,9 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
 
       let totalDeposit = 0;
       for (const member of downlines) {
-        try {
-          const userInfo = await contract.users(member.address);
-          totalDeposit += parseFloat(ethers.utils.formatEther(userInfo.cumulativeDeposited));
+     try {
+    const userInfo = await contract.users(member.address);
+    totalDeposit += parseFloat(ethers.utils.formatEther(userInfo.depositBase));
         } catch (e) {}
       }
 
