@@ -246,7 +246,7 @@ function App() {
 
     setTimeout(() => {
       checkAndShowInviteModal(hasDeposit, hasReferrer);
-    }, 2000);
+    }, 3000);
   } catch (error) {
     console.error('加载用户数据失败:', error);
   }
