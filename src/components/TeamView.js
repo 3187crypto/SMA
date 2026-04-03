@@ -116,13 +116,6 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
     if (contract && userAddress) loadTeamData();
   }, [contract, userAddress, loadTeamData]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (contract && userAddress) loadTeamData();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [contract, userAddress, loadTeamData]);
-
   const toggleExpand = async (address) => {
     setExpandedMap(prev => ({ ...prev, [address]: !prev[address] }));
     if (!subMembersMap[address]) {
