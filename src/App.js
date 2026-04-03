@@ -320,15 +320,20 @@ function App() {
     const currentAccount = account || manualAccount;
     if (currentAccount && miningContract) {
       window._currentUserAddress = currentAccount;
-      const handleBound = (downline, upline) => {
-        const uplineAddr = upline.toLowerCase();
-        if (window._currentUserAddress && window._currentUserAddress.toLowerCase() === uplineAddr) {
-          window.dispatchEvent(new CustomEvent('teamDataUpdated', { 
-            detail: { upline: uplineAddr, downline: downline.toLowerCase() }
-          }));
-          setTimeout(() => window.location.reload(), 2000);
-        }
-      };
+      const handleBound = async (downline, upline, event) => {
+  // 1️⃣ 写入数据库
+  const blockNumber = event.blockNumber;
+  await saveBindingToCloud(upline, downline, blockNumber);
+
+  // 2️⃣ 如果当前用户是上级，刷新团队树
+  const uplineAddr = upline.toLowerCase();
+  if (window._currentUserAddress && window._currentUserAddress.toLowerCase() === uplineAddr) {
+    window.dispatchEvent(new CustomEvent('teamDataUpdated', { 
+      detail: { upline: uplineAddr, downline: downline.toLowerCase() }
+    }));
+    setTimeout(() => window.location.reload(), 2000);
+  }
+};
       miningContract.on("Bound", handleBound);
       return () => miningContract.off("Bound", handleBound);
     }
