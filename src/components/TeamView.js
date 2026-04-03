@@ -26,6 +26,20 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
   const [subMembersMap, setSubMembersMap] = useState({});
   const [circularWarnings, setCircularWarnings] = useState({});
   const [levelStats, setLevelStats] = useState({});
+  
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  // ... 其他函数 ...
+
+  return (
+    // ... JSX ...
+  );
+};
 
   // ========================================
   // 🛡️ 循环检测函数（支持任意深度）
