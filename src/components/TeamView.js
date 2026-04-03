@@ -80,13 +80,26 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
       }
       setCircularWarnings(warnings);
 
-      let totalDeposit = 0;
-      for (const member of downlines) {
-     try {
-    const userInfo = await contract.users(member.address);
-    totalDeposit += parseFloat(ethers.utils.formatEther(userInfo.depositBase));
-        } catch (e) {}
-      }
+      // 递归统计所有下级的总存款
+const getTotalDeposit = async (addr) => {
+  const { data } = await supabase
+    .from('team_bindings')
+    .select('downline')
+    .eq('upline', addr.toLowerCase())
+    .eq('contract_address', CURRENT_CONTRACT_ADDRESS);
+
+  let total = 0;
+  for (const row of data) {
+    try {
+      const userInfo = await contract.users(row.downline);
+      total += parseFloat(ethers.utils.formatEther(userInfo.depositBase));
+    } catch (e) {}
+    total += await getTotalDeposit(row.downline);
+  }
+  return total;
+};
+
+const totalDeposit = await getTotalDeposit(userAddress);
 
       setTeamStats({
         reward: stats.reward,
