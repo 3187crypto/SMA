@@ -305,16 +305,21 @@ function App() {
   };
 
   useEffect(() => {
-    if (miningContract) {
-      const manager = getPoolManager(miningContract);
-      setPoolManager(manager);
-      window.poolManager = manager;
-      loadCache();
+  if (miningContract) {
+    const manager = getPoolManager(miningContract);
+    setPoolManager(manager);
+    window.poolManager = manager;
+    loadCache();
+
+    // 只初始化一次
+    if (!window._teamDataInitialized) {
+      window._teamDataInitialized = true;
       initializeTeamData(miningContract, 87806411).then(() => {
         saveCache();
       }).catch(() => {});
     }
-  }, [miningContract]);
+  }
+}, [miningContract]);
 
   useEffect(() => {
     const currentAccount = account || manualAccount;
