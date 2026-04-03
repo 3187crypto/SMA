@@ -6,10 +6,10 @@ import { getDirectDownlines, getTeamStats } from '../services/teamStats';
 // 循环检测配置
 // ========================================
 const CIRCULAR_CONFIG = {
-  MAX_DEPTH: 20,
+  MAX_DEPTH: 0,        // 0 = 关闭深度检测
   WARNING_DEPTH: 8,
   DANGER_DEPTH: 12,
-  ENABLED: true,
+  ENABLED: false,      // 完全关闭循环检测
 };
 
 const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
@@ -101,10 +101,11 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
       const warnings = {};
       for (const member of downlines) {
         const { hasCircular, depth, path } = await detectCircular(userAddress, member.address);
-        if (hasCircular) {
-          warnings[member.address] = { hasCircular: true, depth, path };
-          console.warn(`⚠️ 检测到循环绑定: ${member.address} 深度 ${depth} 层`);
-        }
+        // 深度 ≤ 2 的循环视为正常绑定，不警告、不拦截
+if (hasCircular && depth > 2) {
+  warnings[member.address] = { hasCircular: true, depth, path };
+  console.warn(`⚠️ 检测到循环绑定: ${member.address} 深度 ${depth} 层`);
+}
       }
       setCircularWarnings(warnings);
 
