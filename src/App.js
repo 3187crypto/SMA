@@ -179,15 +179,36 @@ useEffect(() => {
     const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
     const totalRewarded = info.totalMiningRewarded || info[6];
     
-    setUserInfo({
-      depositBase: ethers.utils.formatEther(depositBase || 0),
-      remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
-      pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
-      cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
-      cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
-      totalRewarded: ethers.utils.formatEther(totalRewarded || 0)
-    });
+    // ========== 1️⃣ 提前计算累计奖励（到手） ==========
+let finalTotalReward = 0;
 
+// 挖矿奖励（所有人都有）
+const miningReward = parseFloat(ethers.utils.formatEther(totalRewarded || 0));
+finalTotalReward += miningReward;
+
+// 矿池奖励（仅矿池会员）
+try {
+  const userBreakdown = await miningContract.getUserRewardBreakdown(currentAccount);
+  const poolReward = parseFloat(ethers.utils.formatEther(userBreakdown[2]));
+  finalTotalReward += poolReward;
+} catch (e) {}
+
+// 节点奖励（仅节点会员）
+try {
+  const nodeEarnings = await miningContract.getNodeRealEarnings(currentAccount);
+  const nodeReward = parseFloat(ethers.utils.formatEther(nodeEarnings[1]));
+  finalTotalReward += nodeReward;
+} catch (e) {}
+
+// ========== 2️⃣ 设置用户状态 ==========
+setUserInfo({
+  depositBase: ethers.utils.formatEther(depositBase || 0),
+  remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
+  pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
+  cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
+  cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
+  totalRewarded: finalTotalReward.toFixed(4)
+});
     const reward = await miningContract.pendingReward(currentAccount);
     setPendingReward(ethers.utils.formatEther(reward));
 
