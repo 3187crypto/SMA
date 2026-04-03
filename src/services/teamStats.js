@@ -84,6 +84,8 @@ export const getTeamStats = async (contract, address) => {
 
 // 保存绑定关系到云数据库
 export const saveBindingToCloud = async (upline, downline, blockNumber) => {
+  console.log("🔥 saveBindingToCloud 被调用", { upline, downline, blockNumber });
+
   const { error } = await supabase
     .from('team_bindings')
     .insert({
