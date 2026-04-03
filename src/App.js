@@ -98,19 +98,15 @@ function App() {
     return new ethers.Contract(CULTURE_ADDRESS, ERC20ABI, signer);
   }, [library]);
 
-  // 获取 URL 中的邀请码参数
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const refCode = urlParams.get('ref');
-    if (refCode && refCode.length >= 6 && !inviteCode && !myInviteCode) {
-      setInviteCode(refCode);
-      setTimeout(() => {
-        if (!myInviteCode && !sessionStorage.getItem('inviteSkipped')) {
-          setShowInviteModal(true);
-        }
-      }, 1000);
-    }
-  }, []);
+  // 1. 读取 URL 参数，暂存邀请码（不立即弹窗）
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCode = urlParams.get('ref');
+  if (refCode && refCode.length >= 6 && !myInviteCode) {
+    // 暂存邀请码，等待钱包连接
+    localStorage.setItem('pendingInviteCode', refCode);
+  }
+}, [myInviteCode]);
 
   useEffect(() => {
     const getOwner = async () => {
@@ -279,6 +275,22 @@ function App() {
       loadBalances();
     }
   }, [account, manualAccount, miningContract]);
+
+     // 2. 钱包连接后检查是否有待绑定的邀请码
+useEffect(() => {
+  if (currentAccount && !myInviteCode) {
+    const pendingCode = localStorage.getItem('pendingInviteCode');
+    if (pendingCode && pendingCode.length >= 6) {
+      setInviteCode(pendingCode);
+      localStorage.removeItem('pendingInviteCode');
+      setTimeout(() => {
+        if (!myInviteCode && !sessionStorage.getItem('inviteSkipped')) {
+          setShowInviteModal(true);
+        }
+      }, 1500);
+    }
+  }
+}, [currentAccount, myInviteCode]);
 
   const copyToClipboard = async (text) => {
     const textStr = String(text);
