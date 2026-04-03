@@ -517,12 +517,6 @@ function App() {
       setShowInviteModal(false);
       setInviteCode('');
       window.history.replaceState({}, document.title, window.location.pathname);
-      initializeTeamData(miningContract, 87806411).then(() => {
-        saveCache();
-        window.dispatchEvent(new CustomEvent('teamDataUpdated', {
-          detail: { upline: account || manualAccount }
-        }));
-      });
       loadUserData();
     } catch (error) {
       alert(tr('bindFailed') + error.message);
