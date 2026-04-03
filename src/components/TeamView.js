@@ -157,8 +157,8 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
             <span className="text-xs text-gray-500">(成员: {member.subCount || 0})</span>
           </div>
           <div className="text-sm font-medium text-green-600">
-            {member.totalRewarded ? member.totalRewarded.toFixed(2) : '0.00'} USDT
-          </div>
+            {member.depositBase ? member.depositBase.toFixed(2) : '0.00'} USDT
+        </div>
         </div>
         {isExpanded && subMembers.length > 0 && (
           <div className="mt-1">{subMembers.map(m => renderMember(m, level + 1))}</div>
