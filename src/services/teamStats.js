@@ -10,15 +10,6 @@ let teamCache = new Map();
 let lastCacheTime = 0;
 const CACHE_DURATION = 60000; // 1分钟缓存
 
-// 获取直接下级（从链上获取）
-export const getDirectDownlinesFromChain = async (contract, address) => {
-  const downlines = [];
-  // 由于合约没有直接提供获取下级的方法，这里需要从事件中获取
-  // 暂时返回空数组，实际数据从 Supabase 获取
-  return downlines;
-};
-
-// 获取直接下级（从 Supabase 获取）
 export const getDirectDownlines = async (contract, address) => {
   const { data, error } = await supabase
     .from('team_bindings')
@@ -34,6 +25,13 @@ export const getDirectDownlines = async (contract, address) => {
   const downlines = [];
   for (const row of data) {
     try {
+      // 查询该下级是否有自己的下级（用于显示展开按钮）
+      const { count, error: countError } = await supabase
+        .from('team_bindings')
+        .select('*', { count: 'exact', head: true })
+        .eq('upline', row.downline)
+        .eq('contract_address', CURRENT_CONTRACT_ADDRESS);
+
       const userInfo = await contract.users(row.downline);
       const isPool = await contract.isMiningPool(row.downline);
       const isNode = await contract.nodes(row.downline);
@@ -44,7 +42,7 @@ export const getDirectDownlines = async (contract, address) => {
         depositBase: parseFloat(ethers.utils.formatEther(userInfo.depositBase)),
         isPool,
         isNode: isNode.isNode,
-        subCount: 0
+        subCount: count || 0   // ✅ 关键：动态子成员数量
       });
     } catch (e) {
       console.error('获取用户信息失败:', row.downline, e);
