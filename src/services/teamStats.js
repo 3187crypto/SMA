@@ -22,15 +22,37 @@ export const getDirectDownlinesFromChain = async (contract, address) => {
 export const getDirectDownlines = async (contract, address) => {
   const { data, error } = await supabase
     .from('team_bindings')
-    .select('*')
+    .select('downline')
     .eq('upline', address.toLowerCase())
-    .eq('contract_address', CURRENT_CONTRACT_ADDRESS)
-    .order('created_at', { ascending: false });
+    .eq('contract_address', '0x03E333b86BB75575b5a1936193D21dCeeE413f5b');
 
   if (error) {
     console.error('获取下级失败:', error);
     return [];
   }
+
+  const downlines = [];
+  for (const row of data) {
+    try {
+      const userInfo = await contract.users(row.downline);
+      const isPool = await contract.isMiningPool(row.downline);
+      const isNode = await contract.nodes(row.downline);
+
+      downlines.push({
+        address: row.downline,
+        totalRewarded: parseFloat(ethers.utils.formatEther(userInfo.totalMiningRewarded)),
+        depositBase: parseFloat(ethers.utils.formatEther(userInfo.depositBase)),
+        isPool,
+        isNode: isNode.isNode,
+        subCount: 0
+      });
+    } catch (e) {
+      console.error('获取用户信息失败:', row.downline, e);
+    }
+  }
+
+  return downlines;
+};
 
   // 为每个下级补充链上信息
   const enrichedDownlines = [];
