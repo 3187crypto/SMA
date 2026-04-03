@@ -346,7 +346,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl w-full max-w-5xl max-h-[85vh] overflow-hidden">
+      <div className="bg-white rounded-xl w-full max-w-[95vw] md:max-w-5xl max-h-[85vh] overflow-hidden">
         
         {/* 头部 */}
         <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50">
