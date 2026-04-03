@@ -140,16 +140,13 @@ useEffect(() => {
     checkIsPool();
   }, [currentAccount, miningContract]);
 
-  const checkAndShowInviteModal = async () => {
-    if (sessionStorage.getItem('inviteSkipped') === 'true') return;
-    if (myInviteCode) return;
-    if (parseFloat(userInfo.cumulativeDeposited) > 0) return;
-    try {
-      const referrer = await miningContract.referrers(account);
-      if (referrer && referrer !== '0x0000000000000000000000000000000000000000') return;
-    } catch (e) {}
-    setShowInviteModal(true);
-  };
+  const checkAndShowInviteModal = async (hasDeposit, hasReferrer) => {
+  if (sessionStorage.getItem('inviteSkipped') === 'true') return;
+  if (myInviteCode) return;
+  if (hasDeposit) return;   // ✅ 关键
+  if (hasReferrer) return;  // ✅ 关键
+  setShowInviteModal(true);
+};
 
   const connectWallet = async (connector) => {
     try {
@@ -230,7 +227,16 @@ useEffect(() => {
     }
     // ========== 新增结束 ==========
     
-    await checkAndShowInviteModal();
+    // 直接从链上最新数据判断存款
+const hasDeposit = parseFloat(ethers.utils.formatEther(cumulativeDeposited || 0)) > 0;
+
+let hasReferrer = false;
+try {
+  const referrer = await miningContract.referrers(currentAccount);
+  hasReferrer = referrer && referrer !== '0x0000000000000000000000000000000000000000';
+} catch (e) {}
+
+await checkAndShowInviteModal(hasDeposit, hasReferrer);
     
   } catch (error) {
     console.error(error);
