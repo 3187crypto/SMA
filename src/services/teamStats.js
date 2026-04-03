@@ -24,7 +24,7 @@ export const getDirectDownlines = async (contract, address) => {
     .from('team_bindings')
     .select('downline')
     .eq('upline', address.toLowerCase())
-    .eq('contract_address', '0x03E333b86BB75575b5a1936193D21dCeeE413f5b');
+    .eq('contract_address', CURRENT_CONTRACT_ADDRESS);
 
   if (error) {
     console.error('获取下级失败:', error);
@@ -52,30 +52,6 @@ export const getDirectDownlines = async (contract, address) => {
   }
 
   return downlines;
-};
-
-  // 为每个下级补充链上信息
-  const enrichedDownlines = [];
-  for (const binding of data) {
-    try {
-      const userInfo = await contract.users(binding.downline);
-      const isPool = await contract.isMiningPool(binding.downline);
-      const isNode = await contract.nodes(binding.downline);
-      
-      enrichedDownlines.push({
-        address: binding.downline,
-        totalRewarded: parseFloat(ethers.utils.formatEther(userInfo.totalMiningRewarded)),
-        depositBase: parseFloat(ethers.utils.formatEther(userInfo.depositBase)),
-        isPool: isPool,
-        isNode: isNode.isNode,
-        subCount: 0 // 需要递归获取
-      });
-    } catch (e) {
-      console.error('获取用户信息失败:', binding.downline, e);
-    }
-  }
-  
-  return enrichedDownlines;
 };
 
 // 获取团队统计
