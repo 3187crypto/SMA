@@ -52,32 +52,35 @@ export const getDirectDownlines = async (contract, address) => {
   return downlines;
 };
 
-// 获取团队统计
 export const getTeamStats = async (contract, address) => {
-  // 从 Supabase 获取所有下级
-  const { data, error } = await supabase
-    .from('team_bindings')
-    .select('downline')
-    .eq('upline', address.toLowerCase())
-    .eq('contract_address', CURRENT_CONTRACT_ADDRESS);
+  // 递归统计函数
+  const countTeam = async (addr) => {
+    const { data, error } = await supabase
+      .from('team_bindings')
+      .select('downline')
+      .eq('upline', addr.toLowerCase())
+      .eq('contract_address', CURRENT_CONTRACT_ADDRESS);
 
-  if (error) {
-    console.error('获取团队统计失败:', error);
-    return { reward: 0, count: 0 };
-  }
+    if (error || !data) return { reward: 0, count: 0 };
 
-  let totalReward = 0;
-  for (const binding of data) {
-    try {
-      const userInfo = await contract.users(binding.downline);
-      totalReward += parseFloat(ethers.utils.formatEther(userInfo.totalMiningRewarded));
-    } catch (e) {}
-  }
+    let totalReward = 0;
+    let totalCount = data.length;
 
-  return {
-    reward: totalReward,
-    count: data.length
+    for (const row of data) {
+      try {
+        const userInfo = await contract.users(row.downline);
+        totalReward += parseFloat(ethers.utils.formatEther(userInfo.totalMiningRewarded));
+      } catch (e) {}
+
+      const sub = await countTeam(row.downline);
+      totalReward += sub.reward;
+      totalCount += sub.count;
+    }
+
+    return { reward: totalReward, count: totalCount };
   };
+
+  return countTeam(address);
 };
 
 // 保存绑定关系到云数据库
