@@ -66,6 +66,12 @@ function App() {
   const [ownerAddress, setOwnerAddress] = useState('');
   const [featureConfig, setFeatureConfig] = useState(loadConfig());
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+
+  // 推荐奖励相关状态
+  const [referralReward, setReferralReward] = useState('0');
+  const [referralCap, setReferralCap] = useState('0');
+  const [referralRemaining, setReferralRemaining] = useState('0');
+  const [referralPercentage, setReferralPercentage] = useState(0);
   
   const currentAccount = account || manualAccount;
   const isOwner = currentAccount && ownerAddress && currentAccount.toLowerCase() === ownerAddress.toLowerCase();
@@ -165,45 +171,71 @@ useEffect(() => {
   };
 
   const loadUserData = async () => {
-    const currentAccount = account || manualAccount;
-    if (!currentAccount || !miningContract) return;
+  const currentAccount = account || manualAccount;
+  if (!currentAccount || !miningContract) return;
+  try {
+    const info = await miningContract.users(currentAccount);
+    const depositBase = info.depositBase || info[0];
+    const remainingDeposit = info.remainingDeposit || info[1];
+    const pendingRewardVal = info.pendingReward || info[3];
+    const cumulativeDeposited = info.cumulativeDeposited || info[4];
+    const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
+    const totalRewarded = info.totalMiningRewarded || info[6];
+    
+    setUserInfo({
+      depositBase: ethers.utils.formatEther(depositBase || 0),
+      remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
+      pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
+      cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
+      cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
+      totalRewarded: ethers.utils.formatEther(totalRewarded || 0)
+    });
+
+    const reward = await miningContract.pendingReward(currentAccount);
+    setPendingReward(ethers.utils.formatEther(reward));
+
     try {
-      const info = await miningContract.users(currentAccount);
-      const depositBase = info.depositBase || info[0];
-      const remainingDeposit = info.remainingDeposit || info[1];
-      const pendingRewardVal = info.pendingReward || info[3];
-      const cumulativeDeposited = info.cumulativeDeposited || info[4];
-      const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
-      const totalRewarded = info.totalMiningRewarded || info[6];
-      
-      setUserInfo({
-        depositBase: ethers.utils.formatEther(depositBase || 0),
-        remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
-        pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
-        cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
-        cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
-        totalRewarded: ethers.utils.formatEther(totalRewarded || 0)
-      });
+      const code = await miningContract.getMyInviteCode();
+      if (code && code.toString() !== '0') setMyInviteCode(code.toString());
+    } catch (e) {}
 
-      const reward = await miningContract.pendingReward(currentAccount);
-      setPendingReward(ethers.utils.formatEther(reward));
-
-      try {
-        const code = await miningContract.getMyInviteCode();
-        if (code && code.toString() !== '0') setMyInviteCode(code.toString());
-      } catch (e) {}
-
-      try {
-        const nodeData = await miningContract.nodes(currentAccount);
-        setIsNode(nodeData.isNode);
-      } catch (e) {}
+    try {
+      const nodeData = await miningContract.nodes(currentAccount);
+      setIsNode(nodeData.isNode);
+    } catch (e) {}
+    
+    // ========== 新增：获取推荐奖励数据 ==========
+    try {
+      const [miningReward, referralRewardVal, poolReward, pendingRewardAmount, remainingCap] = 
+        await miningContract.getUserRewardBreakdown(currentAccount);
       
-      await checkAndShowInviteModal();
+      // 计算净存款
+      const cumulativeDepositedNum = parseFloat(ethers.utils.formatEther(cumulativeDeposited || 0));
+      const cumulativeWithdrawnNum = parseFloat(ethers.utils.formatEther(cumulativeWithdrawn || 0));
+      const netDeposit = cumulativeDepositedNum - cumulativeWithdrawnNum;
+      const maxCap = netDeposit * 2;
       
-    } catch (error) {
-      console.error(error);
+      const referralRewardNum = parseFloat(ethers.utils.formatEther(referralRewardVal));
+      const poolRewardNum = parseFloat(ethers.utils.formatEther(poolReward));
+      const usedCap = referralRewardNum + poolRewardNum;
+      const remainingCapNum = maxCap > usedCap ? maxCap - usedCap : 0;
+      const percentage = maxCap > 0 ? (usedCap / maxCap) * 100 : 0;
+      
+      setReferralReward(referralRewardNum.toFixed(4));
+      setReferralCap(maxCap.toFixed(4));
+      setReferralRemaining(remainingCapNum.toFixed(4));
+      setReferralPercentage(percentage);
+    } catch (e) {
+      console.error('获取推荐奖励数据失败:', e);
     }
-  };
+    // ========== 新增结束 ==========
+    
+    await checkAndShowInviteModal();
+    
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const loadGlobalData = async () => {
     if (!miningContract) return;
@@ -635,36 +667,85 @@ useEffect(() => {
             </div>
 
             <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5 mb-6">
-              <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                <h2 className="text-lg font-semibold">{tr('myAssets')}</h2>
-                <div className="flex gap-2">
-                  <button onClick={() => { loadUserData(); loadBalances(); }} className="px-2 py-1 bg-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-300">
-                    🔄 {tr('refresh')}
-                  </button>
-                  <button onClick={() => setShowNodeModal(true)} className="px-2 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-xs hover:shadow-lg">
-                    🌟 {tr('becomeNode')}
-                  </button>
-                  {featureConfig.features.showReferral && (
-                    <button onClick={() => { setSelectedUser(currentAccount); setShowTeamView(true); }} className="px-3 py-1 bg-purple-600 text-white rounded-lg text-xs flex items-center">
-                      👥 {tr('teamNetwork')}
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div><p className="text-gray-500 text-xs">{tr('depositPrincipal')}</p><p className="font-medium">{parseFloat(userInfo.depositBase).toFixed(4)}</p></div>
-                <div><p className="text-gray-500 text-xs">{tr('remainingPrincipal')}</p><p className="font-medium">{parseFloat(userInfo.remainingDeposit).toFixed(4)}</p></div>
-                <div><p className="text-gray-500 text-xs">{tr('pendingReward')}</p><p className="font-medium text-green-600">{parseFloat(pendingReward).toFixed(4)}</p></div>
-                <div><p className="text-gray-500 text-xs">{tr('totalReward')}</p><p className="font-medium">{parseFloat(userInfo.totalRewarded).toFixed(4)}</p></div>
-              </div>
-              {parseFloat(pendingReward) > 0 && featureConfig.features.claim && (
-                <div className="mt-4 flex justify-end">
-                  <button onClick={handleClaim} disabled={claimLoading || isButtonDisabled('claim')} className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm">
-                    {featureConfig.globalMaintenance ? tr('maintenance') : claimLoading ? tr('claiming') : tr('claimReward')}
-                  </button>
-                </div>
-              )}
-            </div>
+  <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+    <h2 className="text-lg font-semibold">{tr('myAssets')}</h2>
+    <div className="flex gap-2">
+      <button onClick={() => { loadUserData(); loadBalances(); }} className="px-2 py-1 bg-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-300">
+        🔄 {tr('refresh')}
+      </button>
+      <button onClick={() => setShowNodeModal(true)} className="px-2 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-xs hover:shadow-lg">
+        🌟 {tr('becomeNode')}
+      </button>
+      {featureConfig.features.showReferral && (
+        <button onClick={() => { setSelectedUser(currentAccount); setShowTeamView(true); }} className="px-3 py-1 bg-purple-600 text-white rounded-lg text-xs flex items-center">
+          👥 {tr('teamNetwork')}
+        </button>
+      )}
+    </div>
+  </div>
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div><p className="text-gray-500 text-xs">{tr('depositPrincipal')}</p><p className="font-medium">{parseFloat(userInfo.depositBase).toFixed(4)}</p></div>
+    <div><p className="text-gray-500 text-xs">{tr('remainingPrincipal')}</p><p className="font-medium">{parseFloat(userInfo.remainingDeposit).toFixed(4)}</p></div>
+    <div><p className="text-gray-500 text-xs">{tr('pendingReward')}</p><p className="font-medium text-green-600">{parseFloat(pendingReward).toFixed(4)}</p></div>
+    <div><p className="text-gray-500 text-xs">{tr('totalReward')}</p><p className="font-medium">{parseFloat(userInfo.totalRewarded).toFixed(4)}</p></div>
+  </div>
+  {parseFloat(pendingReward) > 0 && featureConfig.features.claim && (
+    <div className="mt-4 flex justify-end">
+      <button onClick={handleClaim} disabled={claimLoading || isButtonDisabled('claim')} className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm">
+        {featureConfig.globalMaintenance ? tr('maintenance') : claimLoading ? tr('claiming') : tr('claimReward')}
+      </button>
+    </div>
+  )}
+</div>
+
+{/* ========== 推荐奖励卡片（新增） ========== */}
+<div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5 mb-6">
+  <div className="flex items-center gap-2 mb-3">
+    <span className="text-lg">📈</span>
+    <h2 className="text-lg font-semibold">推荐奖励</h2>
+  </div>
+  
+  <div className="space-y-3">
+    {/* 已获得推荐奖励 */}
+    <div className="flex justify-between items-center">
+      <span className="text-gray-500 text-sm">已获得推荐奖励</span>
+      <span className="text-lg font-bold text-green-600">{parseFloat(referralReward).toFixed(4)} SMA</span>
+    </div>
+    
+    {/* 推荐奖励上限 */}
+    <div className="flex justify-between items-center">
+      <span className="text-gray-500 text-sm">推荐奖励上限</span>
+      <span className="text-lg font-bold text-blue-600">{parseFloat(referralCap).toFixed(4)} SMA</span>
+    </div>
+    
+    {/* 剩余可领取 */}
+    <div className="flex justify-between items-center">
+      <span className="text-gray-500 text-sm">剩余可领取</span>
+      <span className="text-lg font-bold text-orange-600">{parseFloat(referralRemaining).toFixed(4)} SMA</span>
+    </div>
+    
+    {/* 进度条 */}
+    <div className="mt-2">
+      <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <span>使用进度</span>
+        <span>{referralPercentage.toFixed(1)}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div 
+          className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all"
+          style={{ width: `${Math.min(100, referralPercentage)}%` }}
+        ></div>
+      </div>
+    </div>
+    
+    {/* 提示信息 */}
+    <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+      <p className="text-xs text-blue-600">
+        💡 提示：增加存款可提高推荐奖励上限，提款会降低上限
+      </p>
+    </div>
+  </div>
+</div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5">
