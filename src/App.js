@@ -311,13 +311,10 @@ function App() {
     window.poolManager = manager;
     loadCache();
 
-    // 只初始化一次
-    if (!window._teamDataInitialized) {
-      window._teamDataInitialized = true;
-      initializeTeamData(miningContract, 87806411).then(() => {
-        saveCache();
-      }).catch(() => {});
-    }
+    // ✅ 不再自动清空数据
+    // initializeTeamData(miningContract, 87806411).then(() => {
+    //   saveCache();
+    // }).catch(() => {});
   }
 }, [miningContract]);
 
