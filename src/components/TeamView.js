@@ -1,90 +1,69 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ethers } from 'ethers';  // ✅ 添加这一行
+import { ethers } from 'ethers';
 import { getDirectDownlines, getTeamStats } from '../services/teamStats';
 
 // ========================================
 // 循环检测配置
 // ========================================
 const CIRCULAR_CONFIG = {
-  MAX_DEPTH: 20,        // 最大检测深度（层数）
-  WARNING_DEPTH: 8,     // 超过此深度显示警告
-  DANGER_DEPTH: 12,     // 超过此深度显示危险警告
-  ENABLED: true,        // 是否启用检测
+  MAX_DEPTH: 20,
+  WARNING_DEPTH: 8,
+  DANGER_DEPTH: 12,
+  ENABLED: true,
 };
 
 const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
   const [loading, setLoading] = useState(false);
-  const [teamStats, setTeamStats] = useState({ 
-    reward: 0, 
-    count: 0, 
-    totalDeposit: 0, 
-    activeCount: 0, 
-    newToday: 0 
+  const [teamStats, setTeamStats] = useState({
+    reward: 0,
+    count: 0,
+    totalDeposit: 0,
+    activeCount: 0,
+    newToday: 0
   });
   const [directDownlines, setDirectDownlines] = useState([]);
   const [expandedMap, setExpandedMap] = useState({});
   const [subMembersMap, setSubMembersMap] = useState({});
   const [circularWarnings, setCircularWarnings] = useState({});
   const [levelStats, setLevelStats] = useState({});
-  
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
-
-  // ... 其他函数 ...
-
-  return (
-    // ... JSX ...
-  );
-};
 
   // ========================================
   // 🛡️ 循环检测函数（支持任意深度）
   // ========================================
   const detectCircular = async (startAddress, targetAddress, maxDepth = CIRCULAR_CONFIG.MAX_DEPTH, visited = new Set()) => {
-    // 1. 防止无限递归（深度限制）
     if (visited.size >= maxDepth) {
       console.warn(`⚠️ 检测深度已达 ${maxDepth} 层，停止追溯`);
       return { hasCircular: false, depth: visited.size, path: [] };
     }
-    
-    // 2. 防止自循环
+
     if (targetAddress.toLowerCase() === startAddress.toLowerCase()) {
       return { hasCircular: true, depth: 1, path: [targetAddress] };
     }
-    
-    // 3. 防止重复访问（已经查过的地址）
+
     if (visited.has(targetAddress.toLowerCase())) {
       return { hasCircular: true, depth: visited.size, path: Array.from(visited) };
     }
     visited.add(targetAddress.toLowerCase());
-    
+
     try {
-      // 获取上级地址
       const upline = await contract.referrers(targetAddress);
-      
-      // 没有上级，安全
+
       if (!upline || upline === '0x0000000000000000000000000000000000000000') {
         return { hasCircular: false, depth: visited.size, path: [] };
       }
-      
-      // 如果上级是起点地址 → 循环！
+
       if (upline.toLowerCase() === startAddress.toLowerCase()) {
         const path = Array.from(visited);
         path.push(upline);
         return { hasCircular: true, depth: visited.size + 1, path };
       }
-      
-      // 继续向上追溯
+
       const result = await detectCircular(startAddress, upline, maxDepth, visited);
       if (result.hasCircular) {
         result.path.unshift(targetAddress);
       }
       return result;
-      
+
     } catch (error) {
       console.error('检测循环失败:', error);
       return { hasCircular: false, depth: visited.size, path: [] };
@@ -109,18 +88,16 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
 
   const loadTeamData = useCallback(async () => {
     if (!contract || !userAddress) return;
-    
+
     setLoading(true);
     try {
       console.log('加载团队树，地址:', userAddress);
-      
+
       const stats = await getTeamStats(contract, userAddress);
       const downlines = await getDirectDownlines(contract, userAddress);
-      
-      // 计算活跃成员（累计奖励 > 0 或存款 > 0）
+
       const activeMembers = downlines.filter(m => (m.totalRewarded || 0) > 0 || (m.depositBase || 0) > 0);
-      
-      // 🛡️ 检测每个下级是否有循环
+
       const warnings = {};
       for (const member of downlines) {
         const { hasCircular, depth, path } = await detectCircular(userAddress, member.address);
@@ -130,69 +107,33 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
         }
       }
       setCircularWarnings(warnings);
-      
-      // 计算总存款（从合约获取）
+
       let totalDeposit = 0;
       for (const member of downlines) {
         try {
           const userInfo = await contract.users(member.address);
           totalDeposit += parseFloat(ethers.utils.formatEther(userInfo.cumulativeDeposited));
-        } catch (e) {}
+        } catch (e) { }
       }
-      
+
       setTeamStats({
         reward: stats.reward,
         count: stats.count,
         totalDeposit: totalDeposit,
         activeCount: activeMembers.length,
-        newToday: 0 // 可以从 Supabase 获取
+        newToday: 0
       });
       setDirectDownlines(downlines);
-      
-      // 计算层级统计
+
       const statsByLevel = calculateLevelStats(downlines);
       setLevelStats(statsByLevel);
-      
+
     } catch (error) {
       console.error('加载团队树失败', error);
     } finally {
       setLoading(false);
     }
   }, [contract, userAddress]);
-
-  useEffect(() => {
-    const handleTeamUpdate = (event) => {
-      console.log('🎉 检测到团队更新，重新加载...', event.detail);
-      
-      if (event.detail?.upline?.toLowerCase() === userAddress?.toLowerCase()) {
-        console.log('当前地址是上级，立即刷新团队树');
-        loadTeamData();
-      }
-    };
-
-    window.addEventListener('teamDataUpdated', handleTeamUpdate);
-    
-    return () => {
-      window.removeEventListener('teamDataUpdated', handleTeamUpdate);
-    };
-  }, [userAddress, loadTeamData]);
-
-  useEffect(() => {
-    if (contract && userAddress) {
-      loadTeamData();
-    }
-  }, [contract, userAddress, loadTeamData]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (contract && userAddress) {
-        console.log('定时刷新团队树...');
-        loadTeamData();
-      }
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, [contract, userAddress, loadTeamData]);
 
   const toggleExpand = async (address) => {
     setExpandedMap(prev => ({
@@ -203,8 +144,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
     if (!subMembersMap[address]) {
       try {
         const subMembers = await getDirectDownlines(contract, address);
-        
-        // 🛡️ 检测下级是否有循环
+
         const warnings = { ...circularWarnings };
         for (const member of subMembers) {
           const { hasCircular, depth, path } = await detectCircular(userAddress, member.address);
@@ -214,7 +154,7 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
           }
         }
         setCircularWarnings(warnings);
-        
+
         setSubMembersMap(prev => ({ ...prev, [address]: subMembers }));
       } catch (error) {
         console.error('加载团队成员失败', error);
@@ -222,7 +162,6 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
     }
   };
 
-  // 根据深度获取颜色和样式
   const getLevelStyle = (level) => {
     const colors = [
       'border-l-blue-500',
@@ -255,17 +194,14 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
 
     return (
       <div key={member.address} className={`relative border-l-2 ${getLevelStyle(level)} pl-3 ml-2`}>
-        <div className={`flex items-center justify-between p-3 rounded-lg mb-1 transition-all ${
-          circular?.hasCircular ? 'bg-red-50 hover:bg-red-100 border border-red-300' : 
-          isActive ? 'bg-green-50 hover:bg-green-100' : 'bg-gray-50 hover:bg-gray-100'
-        }`}>
+        <div className={`flex items-center justify-between p-3 rounded-lg mb-1 transition-all ${circular?.hasCircular ? 'bg-red-50 hover:bg-red-100 border border-red-300' :
+            isActive ? 'bg-green-50 hover:bg-green-100' : 'bg-gray-50 hover:bg-gray-100'
+          }`}>
           <div className="flex items-center space-x-3 flex-wrap gap-2">
-            {/* 层级显示 */}
             <span className="text-xs text-gray-400 w-8 font-mono">
               L{level}
             </span>
-            
-            {/* 展开/折叠按钮 */}
+
             {member.subCount > 0 ? (
               <button
                 onClick={() => toggleExpand(member.address)}
@@ -276,34 +212,30 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
             ) : (
               <div className="w-8 h-8" />
             )}
-            
+
             <div className="flex flex-wrap items-center gap-1">
               <span className="font-mono text-sm">
                 {member.address.slice(0, 6)}...{member.address.slice(-4)}
               </span>
-              
-              {/* 深度警告 */}
+
               {depthWarning && (
                 <span className={`px-1.5 py-0.5 text-xs rounded ${depthWarning.class}`}>
                   {depthWarning.text}
                 </span>
               )}
-              
-              {/* 循环警告 */}
+
               {circular?.hasCircular && (
                 <span className="px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full animate-pulse" title={`循环路径: ${circular.path?.join(' → ')}`}>
                   ⚠️ 循环绑定 (深度 {circular.depth})
                 </span>
               )}
-              
-              {/* 活跃标识 */}
+
               {isActive && !circular?.hasCircular && (
                 <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded">
                   🟢 活跃
                 </span>
               )}
-              
-              {/* 矿池/节点标识 */}
+
               {isMemberPool && (
                 <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">
                   ⛏️ 矿池
@@ -314,13 +246,13 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
                   🌟 节点
                 </span>
               )}
-              
+
               <span className="text-xs text-gray-500">
                 (成员: {member.subCount || 0}人)
               </span>
             </div>
           </div>
-          
+
           <div className="text-sm font-medium text-green-600 whitespace-nowrap ml-2">
             {member.totalRewarded ? member.totalRewarded.toFixed(2) : '0.00'} USDT
           </div>
@@ -339,11 +271,10 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
     );
   };
 
-  // 渲染层级统计
   const renderLevelStats = () => {
     const maxLevel = Math.max(...Object.keys(levelStats).map(Number), 0);
     if (maxLevel === 0) return null;
-    
+
     return (
       <div className="mt-4 p-3 bg-gray-50 rounded-lg">
         <div className="text-sm text-gray-600 mb-2">📊 层级分布</div>
@@ -358,14 +289,64 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
     );
   };
 
+  // ========================================
+  // useEffect 区域
+  // ========================================
+
+  // 禁止背景滚动
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  // 监听团队更新事件
+  useEffect(() => {
+    const handleTeamUpdate = (event) => {
+      console.log('🎉 检测到团队更新，重新加载...', event.detail);
+
+      if (event.detail?.upline?.toLowerCase() === userAddress?.toLowerCase()) {
+        console.log('当前地址是上级，立即刷新团队树');
+        loadTeamData();
+      }
+    };
+
+    window.addEventListener('teamDataUpdated', handleTeamUpdate);
+
+    return () => {
+      window.removeEventListener('teamDataUpdated', handleTeamUpdate);
+    };
+  }, [userAddress, loadTeamData]);
+
+  // 初始加载
+  useEffect(() => {
+    if (contract && userAddress) {
+      loadTeamData();
+    }
+  }, [contract, userAddress, loadTeamData]);
+
+  // 定时刷新
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (contract && userAddress) {
+        console.log('定时刷新团队树...');
+        loadTeamData();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [contract, userAddress, loadTeamData]);
+
+  // ========================================
+  // return
+  // ========================================
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 md:p-4">
       <div className="bg-white rounded-xl w-full max-w-[95vw] md:max-w-5xl max-h-[85vh] overflow-y-auto">
-        
         {/* 头部 */}
-        {/* 头部 */}
-         {/* 头部 */}
-          <div className="sticky top-0 bg-white z-10 p-5 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="sticky top-0 bg-white z-10 p-5 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold text-gray-800">🌳 团队树</h2>
             {poolManager?.isPool(userAddress) && (
