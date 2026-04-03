@@ -170,6 +170,7 @@ useEffect(() => {
   const loadUserData = async () => {
   const currentAccount = account || manualAccount;
   if (!currentAccount || !miningContract) return;
+
   try {
     const info = await miningContract.users(currentAccount);
     const depositBase = info.depositBase || info[0];
@@ -177,90 +178,76 @@ useEffect(() => {
     const pendingRewardVal = info.pendingReward || info[3];
     const cumulativeDeposited = info.cumulativeDeposited || info[4];
     const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
-    const totalRewarded = info.totalMiningRewarded || info[6];
-    
-    // ========== 1️⃣ 提前计算累计奖励（到手） ==========
-let finalTotalReward = 0;
+    const totalMiningRewarded = info.totalMiningRewarded || info[6];
 
-// 挖矿奖励（所有人都有）
-const miningReward = parseFloat(ethers.utils.formatEther(totalRewarded || 0));
-finalTotalReward += miningReward;
+    // ========== 1️⃣ 推荐奖励数据 ==========
+    let referralRewardNum = 0;
+    let poolRewardNum = 0;
+    try {
+      const breakdown = await miningContract.getUserRewardBreakdown(currentAccount);
+      referralRewardNum = parseFloat(ethers.utils.formatEther(breakdown[1]));
+      poolRewardNum = parseFloat(ethers.utils.formatEther(breakdown[2]));
+    } catch (e) {}
 
-// 矿池奖励（仅矿池会员）
-try {
-  const userBreakdown = await miningContract.getUserRewardBreakdown(currentAccount);
-  const poolReward = parseFloat(ethers.utils.formatEther(userBreakdown[2]));
-  finalTotalReward += poolReward;
-} catch (e) {}
+    const cumulativeDepositedNum = parseFloat(ethers.utils.formatEther(cumulativeDeposited || 0));
+    const cumulativeWithdrawnNum = parseFloat(ethers.utils.formatEther(cumulativeWithdrawn || 0));
+    const netDeposit = cumulativeDepositedNum - cumulativeWithdrawnNum;
+    const maxCap = netDeposit * 2;
+    const usedCap = referralRewardNum + poolRewardNum;
+    const remainingCapNum = maxCap > usedCap ? maxCap - usedCap : 0;
+    const percentage = maxCap > 0 ? (usedCap / maxCap) * 100 : 0;
 
-// 节点奖励（仅节点会员）
-try {
-  const nodeEarnings = await miningContract.getNodeRealEarnings(currentAccount);
-  const nodeReward = parseFloat(ethers.utils.formatEther(nodeEarnings[1]));
-  finalTotalReward += nodeReward;
-} catch (e) {}
+    setReferralReward(referralRewardNum.toFixed(4));
+    setReferralCap(maxCap.toFixed(4));
+    setReferralRemaining(remainingCapNum.toFixed(4));
+    setReferralPercentage(percentage);
 
-// ========== 2️⃣ 设置用户状态 ==========
-setUserInfo({
-  depositBase: ethers.utils.formatEther(depositBase || 0),
-  remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
-  pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
-  cumulativeDeposited: ethers.utils.formatEther(cumulativeDeposited || 0),
-  cumulativeWithdrawn: ethers.utils.formatEther(cumulativeWithdrawn || 0),
-  totalRewarded: finalTotalReward.toFixed(4)
-});
+    // ========== 2️⃣ 累计奖励（挖矿 + 矿池 + 节点） ==========
+    let finalTotalReward = parseFloat(ethers.utils.formatEther(totalMiningRewarded || 0));
+    finalTotalReward += poolRewardNum;
+
+    try {
+      const nodeEarnings = await miningContract.getNodeRealEarnings(currentAccount);
+      finalTotalReward += parseFloat(ethers.utils.formatEther(nodeEarnings[1]));
+    } catch (e) {}
+
+    // ========== 3️⃣ 更新 UI ==========
+    setUserInfo({
+      depositBase: ethers.utils.formatEther(depositBase || 0),
+      remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
+      pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
+      cumulativeDeposited: cumulativeDepositedNum.toFixed(4),
+      cumulativeWithdrawn: cumulativeWithdrawnNum.toFixed(4),
+      totalRewarded: finalTotalReward.toFixed(4),
+    });
+
+    // 待领取奖励
     const reward = await miningContract.pendingReward(currentAccount);
     setPendingReward(ethers.utils.formatEther(reward));
 
+    // 邀请码
     try {
       const code = await miningContract.getMyInviteCode();
       if (code && code.toString() !== '0') setMyInviteCode(code.toString());
     } catch (e) {}
 
+    // 节点状态
     try {
       const nodeData = await miningContract.nodes(currentAccount);
       setIsNode(nodeData.isNode);
     } catch (e) {}
-    
-    // ========== 新增：获取推荐奖励数据 ==========
+
+    // ========== 4️⃣ 邀请弹窗（正确使用链上数据） ==========
+    const hasDeposit = cumulativeDepositedNum > 0;
+    let hasReferrer = false;
     try {
-      const [miningReward, referralRewardVal, poolReward, pendingRewardAmount, remainingCap] = 
-        await miningContract.getUserRewardBreakdown(currentAccount);
-      
-      // 计算净存款
-      const cumulativeDepositedNum = parseFloat(ethers.utils.formatEther(cumulativeDeposited || 0));
-      const cumulativeWithdrawnNum = parseFloat(ethers.utils.formatEther(cumulativeWithdrawn || 0));
-      const netDeposit = cumulativeDepositedNum - cumulativeWithdrawnNum;
-      const maxCap = netDeposit * 2;
-      
-      const referralRewardNum = parseFloat(ethers.utils.formatEther(referralRewardVal));
-      const poolRewardNum = parseFloat(ethers.utils.formatEther(poolReward));
-      const usedCap = referralRewardNum + poolRewardNum;
-      const remainingCapNum = maxCap > usedCap ? maxCap - usedCap : 0;
-      const percentage = maxCap > 0 ? (usedCap / maxCap) * 100 : 0;
-      
-      setReferralReward(referralRewardNum.toFixed(4));
-      setReferralCap(maxCap.toFixed(4));
-      setReferralRemaining(remainingCapNum.toFixed(4));
-      setReferralPercentage(percentage);
-    } catch (e) {
-      console.error('获取推荐奖励数据失败:', e);
-    }
-    // ========== 新增结束 ==========
-    
-    // 直接从链上最新数据判断存款
-const hasDeposit = parseFloat(ethers.utils.formatEther(cumulativeDeposited || 0)) > 0;
+      const referrer = await miningContract.referrers(currentAccount);
+      hasReferrer = referrer && referrer !== '0x0000000000000000000000000000000000000000';
+    } catch (e) {}
 
-let hasReferrer = false;
-try {
-  const referrer = await miningContract.referrers(currentAccount);
-  hasReferrer = referrer && referrer !== '0x0000000000000000000000000000000000000000';
-} catch (e) {}
-
-await checkAndShowInviteModal(hasDeposit, hasReferrer);
-    
+    await checkAndShowInviteModal(hasDeposit, hasReferrer);
   } catch (error) {
-    console.error(error);
+    console.error('加载用户数据失败:', error);
   }
 };
 
