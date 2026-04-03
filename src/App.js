@@ -171,85 +171,86 @@ function App() {
     deactivate();
   };
 
-  // ✅ 最终稳定版 loadUserData
   const loadUserData = async () => {
-    const currentAccount = account || manualAccount;
-    if (!currentAccount || !miningContract) return;
+  const currentAccount = account || manualAccount;
+  if (!currentAccount || !miningContract) return;
+
+  try {
+    const info = await miningContract.users(currentAccount);
+    const depositBase = info.depositBase || info[0];
+    const remainingDeposit = info.remainingDeposit || info[1];
+    const pendingRewardVal = info.pendingReward || info[3];
+    const cumulativeDeposited = info.cumulativeDeposited || info[4];
+    const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
+    const totalMiningRewarded = info.totalMiningRewarded || info[6];
+
+    // 推荐奖励数据
+    let referralRewardNum = 0;
+    let poolRewardNum = 0;
+    try {
+      const breakdown = await miningContract.getUserRewardBreakdown(currentAccount);
+      referralRewardNum = parseFloat(ethers.utils.formatEther(breakdown[1]));
+      poolRewardNum = parseFloat(ethers.utils.formatEther(breakdown[2]));
+    } catch (e) {}
+
+    const cumulativeDepositedNum = parseFloat(ethers.utils.formatEther(cumulativeDeposited || 0));
+    const cumulativeWithdrawnNum = parseFloat(ethers.utils.formatEther(cumulativeWithdrawn || 0));
+    const netDeposit = cumulativeDepositedNum - cumulativeWithdrawnNum;
+    const maxCap = netDeposit * 2;
+    const usedCap = referralRewardNum + poolRewardNum;
+    const remainingCapNum = maxCap > usedCap ? maxCap - usedCap : 0;
+    const percentage = maxCap > 0 ? (usedCap / maxCap) * 100 : 0;
+
+    setReferralReward(referralRewardNum.toFixed(4));
+    setReferralCap(maxCap.toFixed(4));
+    setReferralRemaining(remainingCapNum.toFixed(4));
+    setReferralPercentage(percentage);
+
+    // 累计奖励（挖矿 + 矿池 + 节点）
+    let finalTotalReward = parseFloat(ethers.utils.formatEther(totalMiningRewarded || 0));
+    finalTotalReward += poolRewardNum;
+    try {
+      const nodeEarnings = await miningContract.getNodeRealEarnings(currentAccount);
+      finalTotalReward += parseFloat(ethers.utils.formatEther(nodeEarnings[1]));
+    } catch (e) {}
+
+    setUserInfo({
+      depositBase: ethers.utils.formatEther(depositBase || 0),
+      remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
+      pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
+      cumulativeDeposited: cumulativeDepositedNum.toFixed(4),
+      cumulativeWithdrawn: cumulativeWithdrawnNum.toFixed(4),
+      totalRewarded: finalTotalReward.toFixed(4),
+    });
+
+    const reward = await miningContract.pendingReward(currentAccount);
+    setPendingReward(ethers.utils.formatEther(reward));
 
     try {
-      const info = await miningContract.users(currentAccount);
-      const depositBase = info.depositBase || info[0];
-      const remainingDeposit = info.remainingDeposit || info[1];
-      const pendingRewardVal = info.pendingReward || info[3];
-      const cumulativeDeposited = info.cumulativeDeposited || info[4];
-      const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
-      const totalMiningRewarded = info.totalMiningRewarded || info[6];
+      const code = await miningContract.getMyInviteCode();
+      if (code && code.toString() !== '0') setMyInviteCode(code.toString());
+    } catch (e) {}
 
-      // 推荐奖励数据
-      let referralRewardNum = 0;
-      let poolRewardNum = 0;
-      try {
-        const breakdown = await miningContract.getUserRewardBreakdown(currentAccount);
-        referralRewardNum = parseFloat(ethers.utils.formatEther(breakdown[1]));
-        poolRewardNum = parseFloat(ethers.utils.formatEther(breakdown[2]));
-      } catch (e) {}
+    try {
+      const nodeData = await miningContract.nodes(currentAccount);
+      setIsNode(nodeData.isNode);
+    } catch (e) {}
 
-      const cumulativeDepositedNum = parseFloat(ethers.utils.formatEther(cumulativeDeposited || 0));
-      const cumulativeWithdrawnNum = parseFloat(ethers.utils.formatEther(cumulativeWithdrawn || 0));
-      const netDeposit = cumulativeDepositedNum - cumulativeWithdrawnNum;
-      const maxCap = netDeposit * 2;
-      const usedCap = referralRewardNum + poolRewardNum;
-      const remainingCapNum = maxCap > usedCap ? maxCap - usedCap : 0;
-      const percentage = maxCap > 0 ? (usedCap / maxCap) * 100 : 0;
+    // ✅ 核心修复：延迟弹窗，确保链上数据已加载
+    const hasDeposit = cumulativeDepositedNum > 0;
+    let hasReferrer = false;
+    try {
+      const referrer = await miningContract.referrers(currentAccount);
+      hasReferrer = referrer && referrer !== '0x0000000000000000000000000000000000000000';
+    } catch (e) {}
 
-      setReferralReward(referralRewardNum.toFixed(4));
-      setReferralCap(maxCap.toFixed(4));
-      setReferralRemaining(remainingCapNum.toFixed(4));
-      setReferralPercentage(percentage);
-
-      // 累计奖励（挖矿 + 矿池 + 节点）
-      let finalTotalReward = parseFloat(ethers.utils.formatEther(totalMiningRewarded || 0));
-      finalTotalReward += poolRewardNum;
-      try {
-        const nodeEarnings = await miningContract.getNodeRealEarnings(currentAccount);
-        finalTotalReward += parseFloat(ethers.utils.formatEther(nodeEarnings[1]));
-      } catch (e) {}
-
-      setUserInfo({
-        depositBase: ethers.utils.formatEther(depositBase || 0),
-        remainingDeposit: ethers.utils.formatEther(remainingDeposit || 0),
-        pendingReward: ethers.utils.formatEther(pendingRewardVal || 0),
-        cumulativeDeposited: cumulativeDepositedNum.toFixed(4),
-        cumulativeWithdrawn: cumulativeWithdrawnNum.toFixed(4),
-        totalRewarded: finalTotalReward.toFixed(4),
-      });
-
-      const reward = await miningContract.pendingReward(currentAccount);
-      setPendingReward(ethers.utils.formatEther(reward));
-
-      try {
-        const code = await miningContract.getMyInviteCode();
-        if (code && code.toString() !== '0') setMyInviteCode(code.toString());
-      } catch (e) {}
-
-      try {
-        const nodeData = await miningContract.nodes(currentAccount);
-        setIsNode(nodeData.isNode);
-      } catch (e) {}
-
-      // ✅ 弹窗判断（直接用链上数据，不用 state）
-      const hasDeposit = cumulativeDepositedNum > 0;
-      let hasReferrer = false;
-      try {
-        const referrer = await miningContract.referrers(currentAccount);
-        hasReferrer = referrer && referrer !== '0x0000000000000000000000000000000000000000';
-      } catch (e) {}
-
-      await checkAndShowInviteModal(hasDeposit, hasReferrer);
-    } catch (error) {
-      console.error('加载用户数据失败:', error);
-    }
-  };
+    setTimeout(() => {
+      checkAndShowInviteModal(hasDeposit, hasReferrer);
+    }, 2000);
+  } catch (error) {
+    console.error('加载用户数据失败:', error);
+  }
+};
 
   // ✅ 弹窗判断函数（必须带两个参数）
   const checkAndShowInviteModal = async (hasDeposit, hasReferrer) => {
