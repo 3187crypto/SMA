@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import { ethers } from 'ethers';
 
 // 当前新合约地址
-const CURRENT_CONTRACT_ADDRESS = "0x03E333b86BB75575b5a1936193D21dCeeE413f5b";
+export const CURRENT_CONTRACT_ADDRESS = "0x03E333b86BB75575b5a1936193D21dCeeE413f5b";
 
 // 缓存变量
 let teamCache = new Map();
