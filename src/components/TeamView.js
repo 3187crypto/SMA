@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { getDirectDownlines, getTeamStats } from '../services/teamStats';
+import { getDirectDownlines, getTeamStats, CURRENT_CONTRACT_ADDRESS } from '../services/teamStats';
+import { supabase } from '../supabaseClient';
 
 const CIRCULAR_CONFIG = {
   MAX_DEPTH: 20,
