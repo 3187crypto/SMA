@@ -84,20 +84,40 @@ export const getTeamStats = async (contract, address) => {
 
 // 保存绑定关系到云数据库
 export const saveBindingToCloud = async (upline, downline, blockNumber) => {
-  console.log("🔥 saveBindingToCloud 被调用", { upline, downline, blockNumber });
+  const cleanUpline = upline.toLowerCase();
+  const cleanDownline = downline.toLowerCase();
 
-  const { error } = await supabase
+  // 1️⃣ 先检查是否已存在（去重）
+  const { data: existing, error: checkError } = await supabase
+    .from('team_bindings')
+    .select('id')
+    .eq('upline', cleanUpline)
+    .eq('downline', cleanDownline)
+    .eq('contract_address', CURRENT_CONTRACT_ADDRESS);
+
+  if (checkError) {
+    console.error('检查绑定关系失败:', checkError);
+    return;
+  }
+
+  if (existing && existing.length > 0) {
+    console.log('⚠️ 绑定关系已存在，跳过写入');
+    return;
+  }
+
+  // 2️⃣ 不存在才插入
+  const { error: insertError } = await supabase
     .from('team_bindings')
     .insert({
-      upline: upline.toLowerCase(),
-      downline: downline.toLowerCase(),
+      upline: cleanUpline,
+      downline: cleanDownline,
       block_number: blockNumber,
       contract_address: CURRENT_CONTRACT_ADDRESS,
       created_at: new Date().toISOString()
     });
 
-  if (error) {
-    console.error('保存绑定关系失败:', error);
+  if (insertError) {
+    console.error('保存绑定关系失败:', insertError);
   } else {
     console.log('✅ 绑定关系已保存到云数据库');
   }
