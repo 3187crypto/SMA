@@ -20,6 +20,7 @@ import NodePanel from './components/NodePanel';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import { loadConfig } from './services/ownerConfig';
 import { getCurrentLanguage, t } from './i18n';
+import { supabase } from './supabaseClient';
 
 function App() {
   const { account, library, activate, deactivate } = useWeb3React();
@@ -368,6 +369,30 @@ function App() {
     return () => miningContract.off("Bound", handleBound);
   }
 }, [account, manualAccount, miningContract]);
+
+// 监听矿池设置事件，自动同步到 Supabase
+useEffect(() => {
+  if (!miningContract) return;
+
+  const handleMiningPoolSet = async (pool, status, event) => {
+    console.log("⛏️ 矿池设置事件", { pool, status });
+
+    const { error } = await supabase
+      .from('pool_performance')
+      .upsert({
+        pool_address: pool.toLowerCase(),
+        is_active: status,
+        last_sync_time: Math.floor(Date.now() / 1000)
+      }, {
+        onConflict: 'pool_address'
+      });
+
+    if (error) console.error("同步矿池失败:", error);
+  };
+
+  miningContract.on("MiningPoolSet", handleMiningPoolSet);
+  return () => miningContract.off("MiningPoolSet", handleMiningPoolSet);
+}, [miningContract]);
 
   useEffect(() => {
     if (miningContract) loadGlobalData();
