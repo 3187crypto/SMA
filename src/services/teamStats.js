@@ -83,12 +83,6 @@ export const getTeamStats = async (contract, address) => {
   return countTeam(address);
 };
 
-    return { reward: totalReward, count: totalCount };
-  };
-
-  return countTeam(address);
-};
-
 // 保存绑定关系到云数据库
 export const saveBindingToCloud = async (upline, downline, blockNumber) => {
   const cleanUpline = upline.toLowerCase();
