@@ -53,7 +53,7 @@ export const getDirectDownlines = async (contract, address) => {
 };
 
 export const getTeamStats = async (contract, address) => {
-  // 递归统计函数
+  // 递归统计所有下级
   const countTeam = async (addr) => {
     const { data, error } = await supabase
       .from('team_bindings')
@@ -76,6 +76,12 @@ export const getTeamStats = async (contract, address) => {
       totalReward += sub.reward;
       totalCount += sub.count;
     }
+
+    return { reward: totalReward, count: totalCount };
+  };
+
+  return countTeam(address);
+};
 
     return { reward: totalReward, count: totalCount };
   };
