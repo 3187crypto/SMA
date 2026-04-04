@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo, useRef } from 'react';
+﻿import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useWeb3React } from '@web3-react/core';
 import { injected, walletconnect } from './connectors';
 import { ethers } from 'ethers';
@@ -72,6 +72,9 @@ function App() {
   const [referralCap, setReferralCap] = useState('0');
   const [referralRemaining, setReferralRemaining] = useState('0');
   const [referralPercentage, setReferralPercentage] = useState(0);
+  
+  // 冷却倒计时 state
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   
   const currentAccount = account || manualAccount;
   const isOwner = currentAccount && ownerAddress && currentAccount.toLowerCase() === ownerAddress.toLowerCase();
@@ -171,6 +174,18 @@ function App() {
     deactivate();
   };
 
+  // 更新冷却时间
+  const updateCooldown = useCallback(async () => {
+    if (!currentAccount || !miningContract) return;
+    try {
+      const lastClaim = await miningContract.lastClaimTime(currentAccount);
+      const now = Math.floor(Date.now() / 1000);
+      const cooldownSeconds = 86400; // 1天
+      const remaining = Math.max(0, cooldownSeconds - (now - Number(lastClaim)));
+      setCooldownRemaining(remaining);
+    } catch (e) {}
+  }, [currentAccount, miningContract]);
+
   // ✅ 最终稳定版 loadUserData
   const loadUserData = async () => {
     const currentAccount = account || manualAccount;
@@ -236,10 +251,21 @@ function App() {
         const nodeData = await miningContract.nodes(currentAccount);
         setIsNode(nodeData.isNode);
       } catch (e) {}
+
+      // 更新冷却时间
+      await updateCooldown();
     } catch (error) {
       console.error('加载用户数据失败:', error);
     }
   };
+
+  // 定时更新冷却时间
+  useEffect(() => {
+    if (!currentAccount) return;
+    updateCooldown();
+    const interval = setInterval(updateCooldown, 1000);
+    return () => clearInterval(interval);
+  }, [currentAccount, updateCooldown]);
 
   // ✅ 最终版弹窗判断（自己查链上，不依赖参数）
   const checkAndShowInviteModal = async () => {
@@ -689,10 +715,24 @@ function App() {
                   <div><p className="text-gray-500 text-xs">{tr('pendingReward')}</p><p className="font-medium text-green-600">{parseFloat(pendingReward).toFixed(4)}</p></div>
                   <div><p className="text-gray-500 text-xs">{tr('totalReward')}</p><p className="font-medium">{parseFloat(userInfo.totalRewarded).toFixed(4)}</p></div>
                 </div>
-                {parseFloat(pendingReward) > 0 && featureConfig.features.claim && (
+                {featureConfig.features.claim && (
                   <div className="mt-4 flex justify-end">
-                    <button onClick={handleClaim} disabled={claimLoading || isButtonDisabled('claim')} className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm">
-                      {featureConfig.globalMaintenance ? tr('maintenance') : claimLoading ? tr('claiming') : tr('claimReward')}
+                    <button
+                      onClick={handleClaim}
+                      disabled={claimLoading || isButtonDisabled('claim') || cooldownRemaining > 0 || parseFloat(pendingReward) <= 0}
+                      className={`px-4 py-1.5 rounded-lg text-sm ${
+                        cooldownRemaining > 0 || parseFloat(pendingReward) <= 0
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-green-600 hover:bg-green-700'
+                      } text-white`}
+                    >
+                      {featureConfig.globalMaintenance
+                        ? tr('maintenance')
+                        : cooldownRemaining > 0
+                        ? `${Math.floor(cooldownRemaining / 3600)}h ${Math.floor((cooldownRemaining % 3600) / 60)}m`
+                        : claimLoading
+                        ? tr('claiming')
+                        : tr('claimReward')}
                     </button>
                   </div>
                 )}
