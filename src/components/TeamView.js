@@ -3,15 +3,24 @@ import { ethers } from 'ethers';
 import { getDirectDownlines, getTeamStats, CURRENT_CONTRACT_ADDRESS } from '../services/teamStats';
 import { supabase } from '../supabaseClient';
 
-const CIRCULAR_CONFIG = {
-  MAX_DEPTH: 20,
-  WARNING_DEPTH: 8,
-  DANGER_DEPTH: 12,
-  ENABLED: true,
+// 简单内存缓存
+let teamCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5分钟
+
+const getCachedDownlines = (address) => {
+  const cached = teamCache.get(address);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedDownlines = (address, data) => {
+  teamCache.set(address, { data, timestamp: Date.now() });
 };
 
 const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [teamStats, setTeamStats] = useState({
     reward: 0,
     count: 0,
@@ -22,32 +31,62 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
   const [directDownlines, setDirectDownlines] = useState([]);
   const [expandedMap, setExpandedMap] = useState({});
   const [subMembersMap, setSubMembersMap] = useState({});
-  const [circularWarnings, setCircularWarnings] = useState({});
   const [levelStats, setLevelStats] = useState({});
 
-  // ✅ 循环检测（只记录，不阻断渲染）
-  const detectCircular = async (startAddress, targetAddress, maxDepth = CIRCULAR_CONFIG.MAX_DEPTH, visited = new Set()) => {
-    if (visited.size >= maxDepth) return { hasCircular: false, depth: visited.size, path: [] };
-    if (targetAddress.toLowerCase() === startAddress.toLowerCase()) return { hasCircular: true, depth: 1, path: [targetAddress] };
-    if (visited.has(targetAddress.toLowerCase())) return { hasCircular: true, depth: visited.size, path: Array.from(visited) };
-    visited.add(targetAddress.toLowerCase());
+  // 递归统计总存款
+  const getTotalDeposit = async (addr) => {
+    const { data } = await supabase
+      .from('team_bindings')
+      .select('downline')
+      .eq('upline', addr.toLowerCase())
+      .eq('contract_address', CURRENT_CONTRACT_ADDRESS);
 
-    try {
-      const upline = await contract.referrers(targetAddress);
-      if (!upline || upline === '0x0000000000000000000000000000000000000000')
-        return { hasCircular: false, depth: visited.size, path: [] };
-      if (upline.toLowerCase() === startAddress.toLowerCase()) {
-        const path = Array.from(visited);
-        path.push(upline);
-        return { hasCircular: true, depth: visited.size + 1, path };
-      }
-      const result = await detectCircular(startAddress, upline, maxDepth, visited);
-      if (result.hasCircular) result.path.unshift(targetAddress);
-      return result;
-    } catch (error) {
-      return { hasCircular: false, depth: visited.size, path: [] };
+    let total = 0;
+    for (const row of data) {
+      try {
+        const userInfo = await contract.users(row.downline);
+        total += parseFloat(ethers.utils.formatEther(userInfo.depositBase));
+      } catch (e) {}
+      total += await getTotalDeposit(row.downline);
     }
+    return total;
   };
+
+  const loadTeamData = useCallback(async (forceRefresh = false) => {
+    if (!contract || !userAddress) return;
+
+    // 1️⃣ 优先使用缓存（除非强制刷新）
+    const cached = !forceRefresh ? getCachedDownlines(userAddress) : null;
+    if (cached) {
+      setDirectDownlines(cached);
+      setLoading(false);
+    }
+
+    // 2️⃣ 后台静默拉取最新数据
+    try {
+      const downlines = await getDirectDownlines(contract, userAddress);
+      const activeMembers = downlines.filter(m => (m.totalRewarded || 0) > 0 || (m.depositBase || 0) > 0);
+      const totalDeposit = await getTotalDeposit(userAddress);
+
+      setDirectDownlines(downlines);
+      setCachedDownlines(userAddress, downlines);
+
+      setTeamStats(prev => ({
+        ...prev,
+        activeCount: activeMembers.length,
+        totalDeposit,
+        count: downlines.length
+      }));
+
+      // 计算层级统计
+      const statsByLevel = calculateLevelStats(downlines);
+      setLevelStats(statsByLevel);
+    } catch (error) {
+      console.error('加载团队树失败', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [contract, userAddress]);
 
   const calculateLevelStats = (members, currentLevel = 1) => {
     const stats = {};
@@ -64,71 +103,9 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
     return stats;
   };
 
-  const loadTeamData = useCallback(async () => {
-    if (!contract || !userAddress) return;
-    setLoading(true);
-    try {
-      const stats = await getTeamStats(contract, userAddress);
-      const downlines = await getDirectDownlines(contract, userAddress);
-      const activeMembers = downlines.filter(m => (m.totalRewarded || 0) > 0 || (m.depositBase || 0) > 0);
-
-      const warnings = {};
-      for (const member of downlines) {
-        const { hasCircular, depth, path } = await detectCircular(userAddress, member.address);
-        if (hasCircular) {
-          warnings[member.address] = { hasCircular: true, depth, path };
-        }
-      }
-      setCircularWarnings(warnings);
-
-      // 递归统计所有下级的总存款
-const getTotalDeposit = async (addr) => {
-  const { data } = await supabase
-    .from('team_bindings')
-    .select('downline')
-    .eq('upline', addr.toLowerCase())
-    .eq('contract_address', CURRENT_CONTRACT_ADDRESS);
-
-  let total = 0;
-  for (const row of data) {
-    try {
-      const userInfo = await contract.users(row.downline);
-      total += parseFloat(ethers.utils.formatEther(userInfo.depositBase));
-    } catch (e) {}
-    total += await getTotalDeposit(row.downline);
-  }
-  return total;
-};
-
-const totalDeposit = await getTotalDeposit(userAddress);
-
-      setTeamStats({
-        reward: stats.reward,
-        count: stats.count,
-        totalDeposit,
-        activeCount: activeMembers.length,
-        newToday: 0,
-      });
-      setDirectDownlines(downlines);
-      setLevelStats(calculateLevelStats(downlines));
-    } catch (error) {
-      console.error('加载团队树失败', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [contract, userAddress]);
-
   useEffect(() => {
-    const handleTeamUpdate = (event) => {
-      if (event.detail?.upline?.toLowerCase() === userAddress?.toLowerCase()) loadTeamData();
-    };
-    window.addEventListener('teamDataUpdated', handleTeamUpdate);
-    return () => window.removeEventListener('teamDataUpdated', handleTeamUpdate);
-  }, [userAddress, loadTeamData]);
-
-  useEffect(() => {
-    if (contract && userAddress) loadTeamData();
-  }, [contract, userAddress, loadTeamData]);
+    loadTeamData();
+  }, [loadTeamData]);
 
   const toggleExpand = async (address) => {
     setExpandedMap(prev => ({ ...prev, [address]: !prev[address] }));
@@ -172,11 +149,29 @@ const totalDeposit = await getTotalDeposit(userAddress);
           </div>
           <div className="text-sm font-medium text-green-600">
             {member.depositBase ? member.depositBase.toFixed(2) : '0.00'} USDT
-        </div>
+          </div>
         </div>
         {isExpanded && subMembers.length > 0 && (
           <div className="mt-1">{subMembers.map(m => renderMember(m, level + 1))}</div>
         )}
+      </div>
+    );
+  };
+
+  const renderLevelStats = () => {
+    const maxLevel = Math.max(...Object.keys(levelStats).map(Number), 0);
+    if (maxLevel === 0) return null;
+
+    return (
+      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+        <div className="text-sm text-gray-600 mb-2">📊 层级分布</div>
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: maxLevel }, (_, i) => i + 1).map(level => (
+            <div key={level} className="text-xs bg-white px-2 py-1 rounded shadow-sm">
+              L{level}: {levelStats[level] || 0}人
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
@@ -195,7 +190,7 @@ const totalDeposit = await getTotalDeposit(userAddress);
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <div className="text-sm text-gray-500">🏆 总奖励</div>
-              <div className="text-2xl font-bold text-blue-600">{loading ? '...' : teamStats.reward.toFixed(2)} SMA</div>
+              <div className="text-2xl font-bold text-blue-600">{loading ? '...' : teamStats.reward.toFixed(2)} USDT</div>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <div className="text-sm text-gray-500">👥 团队成员</div>
@@ -210,11 +205,12 @@ const totalDeposit = await getTotalDeposit(userAddress);
               <div className="text-2xl font-bold text-orange-600">{loading ? '...' : teamStats.activeCount} / {teamStats.count}</div>
             </div>
           </div>
+          {renderLevelStats()}
         </div>
 
         {/* 成员列表 */}
         <div className="p-5">
-          {loading ? (
+          {loading && !directDownlines.length ? (
             <div className="text-center py-12">加载中...</div>
           ) : directDownlines.length > 0 ? (
             directDownlines.map(m => renderMember(m, 1))
@@ -225,6 +221,12 @@ const totalDeposit = await getTotalDeposit(userAddress);
 
         {/* 底部 */}
         <div className="sticky bottom-0 bg-white p-4 border-t flex justify-end">
+          <button
+            onClick={() => loadTeamData(true)}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg mr-2"
+          >
+            🔄 刷新
+          </button>
           <button onClick={onClose} className="px-5 py-2 bg-gray-500 text-white rounded-lg">关闭</button>
         </div>
       </div>
