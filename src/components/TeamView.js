@@ -53,40 +53,44 @@ const TeamView = ({ contract, userAddress, poolManager, onClose }) => {
   };
 
   const loadTeamData = useCallback(async (forceRefresh = false) => {
-    if (!contract || !userAddress) return;
+  if (!contract || !userAddress) return;
 
-    // 1️⃣ 优先使用缓存（除非强制刷新）
-    const cached = !forceRefresh ? getCachedDownlines(userAddress) : null;
-    if (cached) {
-      setDirectDownlines(cached);
-      setLoading(false);
-    }
+  // 1️⃣ 优先使用缓存（除非强制刷新）
+  const cached = !forceRefresh ? getCachedDownlines(userAddress) : null;
+  if (cached) {
+    setDirectDownlines(cached);
+    setLoading(false);
+  }
 
-    // 2️⃣ 后台静默拉取最新数据
-    try {
-      const downlines = await getDirectDownlines(contract, userAddress);
-      const activeMembers = downlines.filter(m => (m.totalRewarded || 0) > 0 || (m.depositBase || 0) > 0);
-      const totalDeposit = await getTotalDeposit(userAddress);
+  // 2️⃣ 后台静默拉取最新数据
+  try {
+    const downlines = await getDirectDownlines(contract, userAddress);
+    const activeMembers = downlines.filter(m => (m.totalRewarded || 0) > 0 || (m.depositBase || 0) > 0);
+    const totalDeposit = await getTotalDeposit(userAddress);
 
-      setDirectDownlines(downlines);
-      setCachedDownlines(userAddress, downlines);
+    // ✅ 关键修复：使用递归统计团队总人数和总奖励
+    const teamStatsData = await getTeamStats(contract, userAddress);
 
-      setTeamStats(prev => ({
-        ...prev,
-        activeCount: activeMembers.length,
-        totalDeposit,
-        count: downlines.length
-      }));
+    setDirectDownlines(downlines);
+    setCachedDownlines(userAddress, downlines);
 
-      // 计算层级统计
-      const statsByLevel = calculateLevelStats(downlines);
-      setLevelStats(statsByLevel);
-    } catch (error) {
-      console.error('加载团队树失败', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [contract, userAddress]);
+    setTeamStats({
+      reward: teamStatsData.reward,
+      count: teamStatsData.count,
+      totalDeposit,
+      activeCount: activeMembers.length,
+      newToday: 0,
+    });
+
+    // 计算层级统计
+    const statsByLevel = calculateLevelStats(downlines);
+    setLevelStats(statsByLevel);
+  } catch (error) {
+    console.error('加载团队树失败', error);
+  } finally {
+    setLoading(false);
+  }
+}, [contract, userAddress]);
 
   const calculateLevelStats = (members, currentLevel = 1) => {
     const stats = {};
