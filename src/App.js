@@ -67,6 +67,7 @@ function App() {
   const [ownerAddress, setOwnerAddress] = useState('');
   const [featureConfig, setFeatureConfig] = useState(loadConfig());
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   
   // 推荐奖励相关 state
   const [referralReward, setReferralReward] = useState('0');
@@ -162,6 +163,7 @@ function App() {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         setManualAccount(accounts[0]);
         await activate(connector);
+        setIsConnected(true);
       } else {
         alert('請安裝MetaMask');
       }
@@ -173,6 +175,7 @@ function App() {
   const disconnectWallet = () => {
     setManualAccount(null);
     deactivate();
+    setIsConnected(false);
   };
 
   // 更新冷却时间
@@ -621,7 +624,7 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-[#0A0A0A] relative">
       <div className="mining-bg-layer"></div>
-      <div className="mining-overlay"></div>
+      {isConnected && <div className="mining-overlay"></div>}
       
       <div className="relative w-full px-4 py-8 z-10">
         <div className="max-w-2xl mx-auto">
