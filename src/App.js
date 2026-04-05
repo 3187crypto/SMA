@@ -766,15 +766,37 @@ useEffect(() => {
 
               {/* 推荐奖励 */}
               <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5 mb-6">
-                <div className="flex items-center gap-2 mb-3"><span className="text-lg">📈</span><h2 className="text-lg font-semibold">推荐奖励</h2></div>
-                <div className="space-y-3">
-                  <div className="flex justify-between"><span className="text-gray-500 text-sm">已获得推荐奖励</span><span className="font-bold text-green-600">{parseFloat(referralReward).toFixed(4)} SMA</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500 text-sm">推荐奖励上限</span><span className="font-bold text-blue-600">{parseFloat(referralCap).toFixed(4)} SMA</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500 text-sm">剩余可领取</span><span className="font-bold text-orange-600">{parseFloat(referralRemaining).toFixed(4)} SMA</span></div>
-                  <div><div className="flex justify-between text-xs text-gray-500 mb-1"><span>使用进度</span><span>{referralPercentage.toFixed(1)}%</span></div><div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full" style={{ width: `${Math.min(100, referralPercentage)}%` }}></div></div></div>
-                  <div className="p-2 bg-blue-50 rounded-lg"><p className="text-xs text-blue-600">💡 提示：增加存款可提高推荐奖励上限，提款会降低上限</p></div>
-                </div>
-              </div>
+  <div className="flex items-center gap-2 mb-3">
+    <span className="text-lg">📈</span>
+    <h2 className="text-lg font-semibold">{tr('recommendReward')}</h2>
+  </div>
+  <div className="space-y-3">
+    <div className="flex justify-between">
+      <span className="text-gray-500 text-sm">{tr('earnedReferralReward')}</span>
+      <span className="font-bold text-green-600">{parseFloat(referralReward).toFixed(4)} SMA</span>
+    </div>
+    <div className="flex justify-between">
+      <span className="text-gray-500 text-sm">{tr('referralRewardCap')}</span>
+      <span className="font-bold text-blue-600">{parseFloat(referralCap).toFixed(4)} SMA</span>
+    </div>
+    <div className="flex justify-between">
+      <span className="text-gray-500 text-sm">{tr('remainingClaimable')}</span>
+      <span className="font-bold text-orange-600">{parseFloat(referralRemaining).toFixed(4)} SMA</span>
+    </div>
+    <div>
+      <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <span>{tr('usageProgress')}</span>
+        <span>{referralPercentage.toFixed(1)}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full" style={{ width: `${Math.min(100, referralPercentage)}%` }}></div>
+      </div>
+    </div>
+    <div className="p-2 bg-blue-50 rounded-lg">
+      <p className="text-xs text-blue-600">{tr('tip')}</p>
+    </div>
+  </div>
+</div>
 
               {/* 存款/提款 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

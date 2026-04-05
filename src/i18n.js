@@ -129,6 +129,14 @@ export const translations = {
     poolBenefit2: '礦池有效期 45 天，每次獲得獎勵後重置計時',
     poolBenefit3: '礦池獎勵上限為淨存款的 2 倍',
     poolBenefit4: '超過 45 天未獲得獎勵，礦池資格自動失效',
+
+     // ========== 推荐奖励卡片 ==========
+    recommendReward: '推薦獎勵',
+    earnedReferralReward: '已獲得推薦獎勵',
+    referralRewardCap: '推薦獎勵上限',
+    remainingClaimable: '剩餘可領取',
+    usageProgress: '使用進度',
+    tip: '💡 提示：增加存款可提高推薦獎勵上限，提款會降低上限',
     
     // ========== 节点面板 ==========
     nodePanelTitle: '節點面板',
