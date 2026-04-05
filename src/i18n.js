@@ -17,6 +17,7 @@ export const translations = {
     // 通用
     appName: '⛏️ 比特超級礦工',
     connectWallet: '連接錢包',
+    copyInviteLink: '複製邀請連結',
     disconnect: '斷開',
     refresh: '刷新',
     copy: '複製',
@@ -188,6 +189,7 @@ export const translations = {
   'en': {
     appName: '⛏️ Bit Super Miner',
     connectWallet: 'Connect Wallet',
+    copyInviteLink: 'Copy Invite Link',
     disconnect: 'Disconnect',
     refresh: 'Refresh',
     copy: 'Copy',
@@ -317,6 +319,7 @@ export const translations = {
   'de': {
     appName: '⛏️ Bit Super Miner',
     connectWallet: 'Wallet verbinden',
+    copyInviteLink: 'Einladungslink kopieren',
     disconnect: 'Trennen',
     refresh: 'Aktualisieren',
     copy: 'Kopieren',
@@ -446,6 +449,7 @@ export const translations = {
   'es': {
     appName: '⛏️ Bit Super Miner',
     connectWallet: 'Conectar Wallet',
+    copyInviteLink: 'Copiar enlace de invitación',
     disconnect: 'Desconectar',
     refresh: 'Actualizar',
     copy: 'Copiar',
@@ -575,6 +579,7 @@ export const translations = {
   'ja': {
     appName: '⛏️ ビットスーパーマイナー',
     connectWallet: 'ウォレットを接続',
+    copyInviteLink: '招待リンクをコピー',
     disconnect: '切断',
     refresh: '更新',
     copy: 'コピー',
@@ -704,6 +709,7 @@ export const translations = {
   'ko': {
     appName: '⛏️ 비트 슈퍼 마이너',
     connectWallet: '지갑 연결',
+    copyInviteLink: '초대 링크 복사',
     disconnect: '연결 해제',
     refresh: '새로고침',
     copy: '복사',
@@ -833,6 +839,7 @@ export const translations = {
   'th': {
     appName: '⛏️ บิตซูเปอร์ไมเนอร์',
     connectWallet: 'เชื่อมต่อกระเป๋าเงิน',
+    copyInviteLink: 'คัดลอกลิงก์เชิญ',
     disconnect: 'ตัดการเชื่อมต่อ',
     refresh: 'รีเฟรช',
     copy: 'คัดลอก',

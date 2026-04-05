@@ -705,7 +705,9 @@ useEffect(() => {
                   ) : (
                     <div className="flex items-center space-x-2">
                       <span className="font-mono font-bold text-blue-600">{myInviteCode}</span>
-                      <button onClick={copyInviteLink} className="px-2 py-1 bg-blue-500 text-white rounded text-xs">📋 复制邀请链接</button>
+                      <button onClick={copyInviteLink} className="px-2 py-1 bg-blue-500 text-white rounded text-xs">
+                          📋 {tr('copyInviteLink')}
+                    </button>
                     </div>
                   )}
                 </div>
