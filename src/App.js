@@ -627,47 +627,45 @@ useEffect(() => {
         <div className="max-w-2xl mx-auto">
           {/* 头部 */}
           <header className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 mb-8">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <h1 className="text-3xl font-bold text-gray-800">{tr('appName')}</h1>
-              <div className="flex items-center space-x-3 flex-wrap justify-center gap-2">
-                {!shouldShowContent ? (
-                  <>
-                    <button onClick={() => connectWallet(injected)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                      MetaMask
-                    </button>
-                    <button onClick={() => connectWallet(walletconnect)} className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm">
-                      WalletConnect
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-600 text-sm">
-                        {currentAccount?.slice(0,6)}...{currentAccount?.slice(-4)}
-                      </span>
-                      {isPool && (
-                        <button onClick={() => { if (featureConfig.features.showPoolBadge) setShowPoolPanel(true); }} className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                          ⛏️ {tr('miningPool')}
-                        </button>
-                      )}
-                      {isNode && (
-                        <button onClick={() => { if (featureConfig.features.showNodeBadge) setShowNodePanel(true); }} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-                          🌟 {tr('nodeBadge')}
-                        </button>
-                      )}
-                    </div>
-                    {isOwner && (
-                      <button onClick={() => setShowOwnerMenu(!showOwnerMenu)} className="p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
-                        ⚙️
-                      </button>
-                    )}
-                    <LanguageSwitcher onLanguageChange={handleLanguageChange} />
-                    <button onClick={disconnectWallet} className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm">{tr('disconnect')}</button>
-                  </>
-                )}
-              </div>
-            </div>
-          </header>
+  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+    <h1 className="text-3xl font-bold text-gray-800">{tr('appName')}</h1>
+    <div className="flex items-center space-x-3 flex-wrap justify-center gap-2">
+      {!shouldShowContent ? (
+        <div className="flex items-center space-x-3">
+          <button onClick={() => connectWallet(injected)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+            連接錢包
+          </button>
+          <LanguageSwitcher onLanguageChange={handleLanguageChange} />
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center space-x-2">
+            <span className="text-gray-600 text-sm">
+              {currentAccount?.slice(0,6)}...{currentAccount?.slice(-4)}
+            </span>
+            {isPool && (
+              <button onClick={() => { if (featureConfig.features.showPoolBadge) setShowPoolPanel(true); }} className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                ⛏️ {tr('miningPool')}
+              </button>
+            )}
+            {isNode && (
+              <button onClick={() => { if (featureConfig.features.showNodeBadge) setShowNodePanel(true); }} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                🌟 {tr('nodeBadge')}
+              </button>
+            )}
+          </div>
+          {isOwner && (
+            <button onClick={() => setShowOwnerMenu(!showOwnerMenu)} className="p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
+              ⚙️
+            </button>
+          )}
+          <LanguageSwitcher onLanguageChange={handleLanguageChange} />
+          <button onClick={disconnectWallet} className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm">{tr('disconnect')}</button>
+        </>
+      )}
+    </div>
+  </div>
+</header>
 
           {shouldShowContent && (
             <>
