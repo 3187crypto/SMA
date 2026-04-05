@@ -629,7 +629,7 @@ useEffect(() => {
       <div className="relative w-full px-4 py-8 z-10">
         <div className="max-w-2xl mx-auto">
           {/* 头部 */}
-          <header className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 mb-8">
+          <header className={`${!shouldShowContent ? 'bg-transparent' : 'bg-white/95'} backdrop-blur-sm rounded-2xl shadow-xl p-6 mb-8`}>
   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
     <h1 className="text-3xl font-bold text-gray-800">{tr('appName')}</h1>
     <div className="flex items-center space-x-3 flex-wrap justify-center gap-2">
