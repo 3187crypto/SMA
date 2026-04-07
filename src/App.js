@@ -296,14 +296,18 @@ function App() {
     setShowInviteModal(true);
   };
 
-  // 在钱包连接后主动触发一次弹窗检查
-  useEffect(() => {
-    if (currentAccount && miningContract) {
+  // 在钱包连接后主动触发一次弹窗检查（先加载数据，再弹窗）
+useEffect(() => {
+  if (currentAccount && miningContract) {
+    // 先加载用户数据（存款、上级、邀请码）
+    loadUserData().then(() => {
+      // 数据加载完成后再检查弹窗
       setTimeout(() => {
         checkAndShowInviteModal();
-      }, 2000);
-    }
-  }, [currentAccount, miningContract]);
+      }, 500);
+    });
+  }
+}, [currentAccount, miningContract]);
 
   const loadGlobalData = async () => {
     if (!miningContract) return;
