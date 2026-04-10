@@ -24,6 +24,8 @@ export const translations = {
     copied: '✓ 已複製',
     loading: '加載中...',
     close: '關閉',
+    addLiquidity: '添加流動性',
+    addingLiquidity: '添加中...',
     
     // 数据卡片
     usdtBalance: 'USDT餘額',
@@ -313,6 +315,8 @@ export const translations = {
     recipientLabel: 'Recipient Address',
     amountLabel: 'Amount (0 = All)',
     withdraw: 'Withdraw'
+    addLiquidity: 'Add Liquidity',
+    addingLiquidity: 'Adding...',
   },
 
   // ==================== Deutsch ====================
@@ -443,6 +447,8 @@ export const translations = {
     recipientLabel: 'Empfängeradresse',
     amountLabel: 'Betrag (0 = Alle)',
     withdraw: 'Auszahlen'
+    addLiquidity: 'Liquidität hinzufügen',
+    addingLiquidity: 'Füge hinzu...',
   },
 
   // ==================== Español ====================
@@ -573,6 +579,8 @@ export const translations = {
     recipientLabel: 'Dirección Destinataria',
     amountLabel: 'Monto (0 = Todo)',
     withdraw: 'Retirar'
+    addLiquidity: 'Añadir Liquidez',
+    addingLiquidity: 'Añadiendo...',
   },
 
   // ==================== 日本語 ====================
@@ -703,6 +711,8 @@ export const translations = {
     recipientLabel: '受取アドレス',
     amountLabel: '金額 (0=全額)',
     withdraw: '出金'
+    addLiquidity: '流動性を追加',
+    addingLiquidity: '追加中...',
   },
 
   // ==================== 한국어 ====================
@@ -833,6 +843,8 @@ export const translations = {
     recipientLabel: '받는 주소',
     amountLabel: '금액 (0=전체)',
     withdraw: '출금'
+    addLiquidity: '유동성 추가',
+    addingLiquidity: '추가 중...',
   },
 
   // ==================== ภาษาไทย ====================
@@ -963,6 +975,8 @@ export const translations = {
     recipientLabel: 'ที่อยู่ผู้รับ',
     amountLabel: 'จำนวน (0=ทั้งหมด)',
     withdraw: 'ถอน'
+    addLiquidity: 'เพิ่มสภาพคล่อง',
+    addingLiquidity: 'กำลังเพิ่ม...',
   }
 };
 

@@ -725,12 +725,12 @@ const copyToClipboard = async (text) => {
     )}
     {/* 添加流动性按钮 */}
     <button
-      onClick={handleAddLiquidity}
-      disabled={addLiquidityLoading}
-      className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50"
-    >
-      {addLiquidityLoading ? '添加中...' : '添加流动性'}
-    </button>
+  onClick={handleAddLiquidity}
+  disabled={addLiquidityLoading}
+  className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50"
+>
+  {addLiquidityLoading ? tr('addingLiquidity') : tr('addLiquidity')}
+</button>
     <LanguageSwitcher onLanguageChange={handleLanguageChange} />
     <button onClick={disconnectWallet} className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm">{tr('disconnect')}</button>
   </>
