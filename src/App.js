@@ -68,7 +68,9 @@ function App() {
   const [featureConfig, setFeatureConfig] = useState(loadConfig());
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  
+
+  const [addLiquidityLoading, setAddLiquidityLoading] = useState(false);
+  const [totalPendingUSDT, setTotalPendingUSDT] = useState('0');
   // 推荐奖励相关 state
   const [referralReward, setReferralReward] = useState('0');
   const [referralCap, setReferralCap] = useState('0');
@@ -401,44 +403,99 @@ useEffect(() => {
   return () => miningContract.off("MiningPoolSet", handleMiningPoolSet);
 }, [miningContract]);
 
-  useEffect(() => {
-    if (miningContract) loadGlobalData();
-  }, [miningContract]);
+ useEffect(() => {
+  if (miningContract) {
+    loadGlobalData();
+    loadTotalPendingUSDT();
+  }
+}, [miningContract]);
 
-  useEffect(() => {
-    const currentAccount = account || manualAccount;
-    if (currentAccount && miningContract) {
-      loadUserData();
-      loadBalances();
+useEffect(() => {
+  const currentAccount = account || manualAccount;
+  if (currentAccount && miningContract) {
+    loadUserData();
+    loadBalances();
+  }
+}, [account, manualAccount, miningContract]);
+
+// ========== 获取待分配 USDT 总额 ==========
+const loadTotalPendingUSDT = async () => {
+  if (!miningContract) return;
+  try {
+    const pending = await miningContract.totalPendingUSDT();
+    setTotalPendingUSDT(ethers.utils.formatEther(pending));
+  } catch (error) {
+    console.error('获取待分配USDT失败:', error);
+  }
+};
+
+// ========== 添加流动性 ==========
+const handleAddLiquidity = async () => {
+  if (addLiquidityLoading) return;
+  setAddLiquidityLoading(true);
+
+  try {
+    const pendingWei = await miningContract.totalPendingUSDT();
+    const totalPending = parseFloat(ethers.utils.formatEther(pendingWei));
+    const calculated = totalPending * 0.2;
+    const amountToUse = Math.min(calculated, 500);
+    const finalAmount = Math.floor(amountToUse * 1e18) / 1e18;
+
+    if (finalAmount <= 0) {
+      alert('当前无可用的待分配 USDT');
+      return;
     }
-  }, [account, manualAccount, miningContract]);
 
-  const copyToClipboard = async (text) => {
-    const textStr = String(text);
-    const btn = document.activeElement;
-    const originalText = btn.innerText;
-    const originalClasses = btn.className;
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(textStr);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = textStr;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
+    if (library) {
+      const bnbBalance = await library.getBalance(currentAccount);
+      if (bnbBalance.lt(ethers.utils.parseEther('0.005'))) {
+        alert('BNB 余额不足，需要 0.005 BNB');
+        return;
       }
-      btn.innerText = tr('copied');
-      btn.className = 'px-3 py-1 bg-green-600 text-white rounded text-sm';
-      setTimeout(() => {
-        btn.innerText = originalText;
-        btn.className = originalClasses;
-      }, 1500);
-    } catch (error) {
-      alert(tr('copyFailed') + textStr);
     }
-  };
+
+    const amount = ethers.utils.parseEther(finalAmount.toString());
+    const tx = await miningContract.addLiquidityFromPending(amount, {
+      value: ethers.utils.parseEther('0.005')
+    });
+    await tx.wait();
+
+    alert(`流动性添加成功！已使用 ${finalAmount} USDT`);
+    await loadTotalPendingUSDT();
+  } catch (error) {
+    console.error('添加流动性失败:', error);
+    alert('添加流动性失败: ' + error.message);
+  } finally {
+    setAddLiquidityLoading(false);
+  }
+};
+
+const copyToClipboard = async (text) => {
+  const textStr = String(text);
+  const btn = document.activeElement;
+  const originalText = btn.innerText;
+  const originalClasses = btn.className;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(textStr);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = textStr;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    btn.innerText = tr('copied');
+    btn.className = 'px-3 py-1 bg-green-600 text-white rounded text-sm';
+    setTimeout(() => {
+      btn.innerText = originalText;
+      btn.className = originalClasses;
+    }, 1500);
+  } catch (error) {
+    alert(tr('copyFailed') + textStr);
+  }
+};
 
   const copyInviteLink = async () => {
     const inviteLink = `${window.location.origin}/?ref=${myInviteCode}`;
@@ -638,38 +695,46 @@ useEffect(() => {
     <h1 className="text-3xl font-bold text-red-600">{tr('appName')}</h1>
     <div className="flex items-center space-x-3 flex-wrap justify-center gap-2">
       {!shouldShowContent ? (
-        <div className="flex items-center space-x-3">
-          <button onClick={() => connectWallet(injected)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-            {tr('connectWallet')}
-           </button>
-          <LanguageSwitcher onLanguageChange={handleLanguageChange} />
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center space-x-2">
-            <span className="text-gray-600 text-sm">
-              {currentAccount?.slice(0,6)}...{currentAccount?.slice(-4)}
-            </span>
-            {isPool && (
-              <button onClick={() => { if (featureConfig.features.showPoolBadge) setShowPoolPanel(true); }} className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                ⛏️ {tr('miningPool')}
-              </button>
-            )}
-            {isNode && (
-              <button onClick={() => { if (featureConfig.features.showNodeBadge) setShowNodePanel(true); }} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-                🌟 {tr('nodeBadge')}
-              </button>
-            )}
-          </div>
-          {isOwner && (
-            <button onClick={() => setShowOwnerMenu(!showOwnerMenu)} className="p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
-              ⚙️
-            </button>
-          )}
-          <LanguageSwitcher onLanguageChange={handleLanguageChange} />
-          <button onClick={disconnectWallet} className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm">{tr('disconnect')}</button>
-        </>
+  <div className="flex items-center space-x-3">
+    <button onClick={() => connectWallet(injected)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+      {tr('connectWallet')}
+    </button>
+    <LanguageSwitcher onLanguageChange={handleLanguageChange} />
+  </div>
+) : (
+  <>
+    <div className="flex items-center space-x-2">
+      <span className="text-gray-600 text-sm">
+        {currentAccount?.slice(0,6)}...{currentAccount?.slice(-4)}
+      </span>
+      {isPool && (
+        <button onClick={() => { if (featureConfig.features.showPoolBadge) setShowPoolPanel(true); }} className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+          ⛏️ {tr('miningPool')}
+        </button>
       )}
+      {isNode && (
+        <button onClick={() => { if (featureConfig.features.showNodeBadge) setShowNodePanel(true); }} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+          🌟 {tr('nodeBadge')}
+        </button>
+      )}
+    </div>
+    {isOwner && (
+      <button onClick={() => setShowOwnerMenu(!showOwnerMenu)} className="p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
+        ⚙️
+      </button>
+    )}
+    {/* 添加流动性按钮 */}
+    <button
+      onClick={handleAddLiquidity}
+      disabled={addLiquidityLoading}
+      className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50"
+    >
+      {addLiquidityLoading ? '添加中...' : '添加流动性'}
+    </button>
+    <LanguageSwitcher onLanguageChange={handleLanguageChange} />
+    <button onClick={disconnectWallet} className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm">{tr('disconnect')}</button>
+  </>
+)}
     </div>
   </div>
 </header>
