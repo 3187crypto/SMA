@@ -314,7 +314,7 @@ export const translations = {
     revokeWarning: 'After revocation, emergency withdrawal will be permanently disabled',
     recipientLabel: 'Recipient Address',
     amountLabel: 'Amount (0 = All)',
-    withdraw: 'Withdraw'
+    withdraw: 'Withdraw', 
     addLiquidity: 'Add Liquidity',
     addingLiquidity: 'Adding...',
   },
