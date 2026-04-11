@@ -684,11 +684,22 @@ const copyToClipboard = async (text) => {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] relative">
-      <div className="mining-bg-layer"></div>
-      {isConnected && <div className="mining-overlay"></div>}
-      
-      <div className="relative w-full px-4 py-8 z-10">
-        <div className="max-w-2xl mx-auto">
+  {/* 视频背景层 */}
+  <video
+    autoPlay
+    loop
+    muted
+    playsInline
+    className="fixed top-0 left-0 w-full h-full object-cover z-0"
+  >
+    <source src="/videos/bcc.mp4" type="video/mp4" />
+  </video>
+  
+  {/* 半透明遮罩层（保证文字可读） */}
+  {isConnected && <div className="fixed top-0 left-0 w-full h-full bg-black/50 z-[1] pointer-events-none"></div>}
+  
+  <div className="relative w-full px-4 py-8 z-10">
+    <div className="max-w-2xl mx-auto">
           {/* 头部 */}
           <header className={`${!shouldShowContent ? 'bg-transparent' : 'bg-white/95'} rounded-2xl shadow-xl p-6 mb-8`}>
   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
