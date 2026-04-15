@@ -113,13 +113,12 @@ function App() {
     return new ethers.Contract(CULTURE_ADDRESS, ERC20ABI, signer);
   }, [library]);
 
-  // 获取当前市场价格
+    // 获取当前市场价格
   const updateMarketPrice = async () => {
     if (!miningContract) return;
     try {
       const price = await miningContract.getMarketPrice();
-      // 注释掉这行，因为不需要这个 state
-      // setCurrentMarketPrice(parseFloat(ethers.utils.formatEther(price)).toFixed(4));
+      // setCurrentMarketPrice 已删除，因为不再需要
     } catch (e) {}
   };
 

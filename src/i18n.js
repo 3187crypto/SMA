@@ -647,4 +647,15 @@ export const changeLanguage = (lang, setLang) => {
   window.location.reload();
 };
 
+// 在文件末尾，export default translations 之前添加
+export const languages = [
+  { code: 'zh', name: '中文' },
+  { code: 'en', name: 'English' },
+  { code: 'ja', name: '日本語' },
+  { code: 'ko', name: '한국어' },
+  { code: 'vi', name: 'Tiếng Việt' },
+  { code: 'th', name: 'ไทย' },
+  { code: 'es', name: 'Español' }
+];
+
 export default translations;
