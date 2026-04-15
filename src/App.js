@@ -71,6 +71,11 @@ function App() {
 
   const [addLiquidityLoading, setAddLiquidityLoading] = useState(false);
   const [totalPendingUSDT, setTotalPendingUSDT] = useState('0');
+  
+  // ========== LP 分红相关 state ==========
+  const [pendingDividends, setPendingDividends] = useState('0');
+  const [dividendLoading, setDividendLoading] = useState(false);
+  
   // 推荐奖励相关 state
   const [referralReward, setReferralReward] = useState('0');
   const [referralCap, setReferralCap] = useState('0');
@@ -107,6 +112,15 @@ function App() {
     const signer = library.getSigner();
     return new ethers.Contract(CULTURE_ADDRESS, ERC20ABI, signer);
   }, [library]);
+
+  // 获取当前市场价格
+  const updateMarketPrice = async () => {
+    if (!miningContract) return;
+    try {
+      const price = await miningContract.getMarketPrice();
+      setCurrentMarketPrice(parseFloat(ethers.utils.formatEther(price)).toFixed(4));
+    } catch (e) {}
+  };
 
   // 读取 URL 中的邀请码（暂存）
   useEffect(() => {
@@ -192,6 +206,42 @@ function App() {
     } catch (e) {}
   }, [currentAccount, miningContract]);
 
+  // ========== 查询待领取分红 ==========
+  const loadPendingDividends = async () => {
+    if (!currentAccount || !miningContract) return;
+    try {
+      const dividends = await miningContract.getPendingDividends(currentAccount);
+      setPendingDividends(ethers.utils.formatEther(dividends));
+      console.log('待领取分红:', ethers.utils.formatEther(dividends));
+    } catch (error) {
+      console.error('查询分红失败:', error);
+    }
+  };
+
+  // ========== 领取分红 ==========
+  const handleClaimDividends = async () => {
+    if (dividendLoading) return;
+    if (!currentAccount) {
+      alert('请先连接钱包');
+      return;
+    }
+    
+    setDividendLoading(true);
+    try {
+      const tx = await miningContract.claimDividends();
+      await tx.wait();
+      alert('✅ 分红领取成功！');
+      await loadPendingDividends();
+      await loadUserData();
+      await loadBalances();
+    } catch (error) {
+      console.error('领取分红失败:', error);
+      alert('领取分红失败: ' + (error.reason || error.message || '未知错误'));
+    } finally {
+      setDividendLoading(false);
+    }
+  };
+
   // ✅ 最终稳定版 loadUserData
   const loadUserData = async () => {
     const currentAccount = account || manualAccount;
@@ -258,8 +308,9 @@ function App() {
         setIsNode(nodeData.isNode);
       } catch (e) {}
 
-      // 更新冷却时间
       await updateCooldown();
+      await updateMarketPrice();
+      await loadPendingDividends(); // 加载分红
     } catch (error) {
       console.error('加载用户数据失败:', error);
     }
@@ -272,6 +323,14 @@ function App() {
     const interval = setInterval(updateCooldown, 1000);
     return () => clearInterval(interval);
   }, [currentAccount, updateCooldown]);
+
+  // 定时更新市场价格
+  useEffect(() => {
+    if (!miningContract) return;
+    updateMarketPrice();
+    const interval = setInterval(updateMarketPrice, 30000);
+    return () => clearInterval(interval);
+  }, [miningContract]);
 
   // ✅ 最终版弹窗判断（自己查链上，不依赖参数）
   const checkAndShowInviteModal = async () => {
@@ -299,17 +358,15 @@ function App() {
   };
 
   // 在钱包连接后主动触发一次弹窗检查（先加载数据，再弹窗）
-useEffect(() => {
-  if (currentAccount && miningContract) {
-    // 先加载用户数据（存款、上级、邀请码）
-    loadUserData().then(() => {
-      // 数据加载完成后再检查弹窗
-      setTimeout(() => {
-        checkAndShowInviteModal();
-      }, 500);
-    });
-  }
-}, [currentAccount, miningContract]);
+  useEffect(() => {
+    if (currentAccount && miningContract) {
+      loadUserData().then(() => {
+        setTimeout(() => {
+          checkAndShowInviteModal();
+        }, 500);
+      });
+    }
+  }, [currentAccount, miningContract]);
 
   const loadGlobalData = async () => {
     if (!miningContract) return;
@@ -341,161 +398,156 @@ useEffect(() => {
   };
 
   useEffect(() => {
-  if (miningContract) {
-    const manager = getPoolManager(miningContract);
-    setPoolManager(manager);
-    window.poolManager = manager;
-    loadCache();
-
-    // ✅ 不再自动清空数据
-    // initializeTeamData(miningContract, 87806411).then(() => {
-    //   saveCache();
-    // }).catch(() => {});
-  }
-}, [miningContract]);
+    if (miningContract) {
+      const manager = getPoolManager(miningContract);
+      setPoolManager(manager);
+      window.poolManager = manager;
+      loadCache();
+    }
+  }, [miningContract]);
 
   useEffect(() => {
-  const currentAccount = account || manualAccount;
-  if (currentAccount && miningContract) {
-    window._currentUserAddress = currentAccount;
+    const currentAccount = account || manualAccount;
+    if (currentAccount && miningContract) {
+      window._currentUserAddress = currentAccount;
 
-    const handleBound = async (downline, upline, event) => {
-      console.log("🔥 Bound 事件触发", { downline, upline });
+      const handleBound = async (downline, upline, event) => {
+        console.log("🔥 Bound 事件触发", { downline, upline });
 
-      const blockNumber = event.blockNumber;
-      await saveBindingToCloud(upline, downline, blockNumber);
+        const blockNumber = event.blockNumber;
+        await saveBindingToCloud(upline, downline, blockNumber);
 
-      const uplineAddr = upline.toLowerCase();
-      if (window._currentUserAddress && window._currentUserAddress.toLowerCase() === uplineAddr) {
-        window.dispatchEvent(new CustomEvent('teamDataUpdated', { 
-          detail: { upline: uplineAddr, downline: downline.toLowerCase() }
-        }));
-        setTimeout(() => window.location.reload(), 2000);
-      }
+        const uplineAddr = upline.toLowerCase();
+        if (window._currentUserAddress && window._currentUserAddress.toLowerCase() === uplineAddr) {
+          window.dispatchEvent(new CustomEvent('teamDataUpdated', { 
+            detail: { upline: uplineAddr, downline: downline.toLowerCase() }
+          }));
+          setTimeout(() => window.location.reload(), 2000);
+        }
+      };
+
+      miningContract.on("Bound", handleBound);
+      return () => miningContract.off("Bound", handleBound);
+    }
+  }, [account, manualAccount, miningContract]);
+
+  // 监听矿池设置事件，自动同步到 Supabase
+  useEffect(() => {
+    if (!miningContract) return;
+
+    const handleMiningPoolSet = async (pool, status, event) => {
+      console.log("⛏️ 矿池设置事件", { pool, status });
+
+      const { error } = await supabase
+        .from('pool_performance')
+        .upsert({
+          pool_address: pool.toLowerCase(),
+          is_active: status,
+          last_sync_time: Math.floor(Date.now() / 1000)
+        }, {
+          onConflict: 'pool_address'
+        });
+
+      if (error) console.error("同步矿池失败:", error);
     };
 
-    miningContract.on("Bound", handleBound);
-    return () => miningContract.off("Bound", handleBound);
-  }
-}, [account, manualAccount, miningContract]);
+    miningContract.on("MiningPoolSet", handleMiningPoolSet);
+    return () => miningContract.off("MiningPoolSet", handleMiningPoolSet);
+  }, [miningContract]);
 
-// 监听矿池设置事件，自动同步到 Supabase
-useEffect(() => {
-  if (!miningContract) return;
+  useEffect(() => {
+    if (miningContract) {
+      loadGlobalData();
+      loadTotalPendingUSDT();
+    }
+  }, [miningContract]);
 
-  const handleMiningPoolSet = async (pool, status, event) => {
-    console.log("⛏️ 矿池设置事件", { pool, status });
+  useEffect(() => {
+    const currentAccount = account || manualAccount;
+    if (currentAccount && miningContract) {
+      loadUserData();
+      loadBalances();
+    }
+  }, [account, manualAccount, miningContract]);
 
-    const { error } = await supabase
-      .from('pool_performance')
-      .upsert({
-        pool_address: pool.toLowerCase(),
-        is_active: status,
-        last_sync_time: Math.floor(Date.now() / 1000)
-      }, {
-        onConflict: 'pool_address'
-      });
-
-    if (error) console.error("同步矿池失败:", error);
+  // ========== 获取待分配 USDT 总额 ==========
+  const loadTotalPendingUSDT = async () => {
+    if (!miningContract) return;
+    try {
+      const pending = await miningContract.totalPendingUSDT();
+      setTotalPendingUSDT(ethers.utils.formatEther(pending));
+    } catch (error) {
+      console.error('获取待分配USDT失败:', error);
+    }
   };
 
-  miningContract.on("MiningPoolSet", handleMiningPoolSet);
-  return () => miningContract.off("MiningPoolSet", handleMiningPoolSet);
-}, [miningContract]);
+  // ========== 添加流动性 ==========
+  const handleAddLiquidity = async () => {
+    if (addLiquidityLoading) return;
+    setAddLiquidityLoading(true);
 
- useEffect(() => {
-  if (miningContract) {
-    loadGlobalData();
-    loadTotalPendingUSDT();
-  }
-}, [miningContract]);
+    try {
+      const pendingWei = await miningContract.totalPendingUSDT();
+      const totalPending = parseFloat(ethers.utils.formatEther(pendingWei));
+      const calculated = totalPending * 0.2;
+      const amountToUse = Math.min(calculated, 500);
+      const finalAmount = Math.floor(amountToUse * 1e18) / 1e18;
 
-useEffect(() => {
-  const currentAccount = account || manualAccount;
-  if (currentAccount && miningContract) {
-    loadUserData();
-    loadBalances();
-  }
-}, [account, manualAccount, miningContract]);
-
-// ========== 获取待分配 USDT 总额 ==========
-const loadTotalPendingUSDT = async () => {
-  if (!miningContract) return;
-  try {
-    const pending = await miningContract.totalPendingUSDT();
-    setTotalPendingUSDT(ethers.utils.formatEther(pending));
-  } catch (error) {
-    console.error('获取待分配USDT失败:', error);
-  }
-};
-
-// ========== 添加流动性 ==========
-const handleAddLiquidity = async () => {
-  if (addLiquidityLoading) return;
-  setAddLiquidityLoading(true);
-
-  try {
-    const pendingWei = await miningContract.totalPendingUSDT();
-    const totalPending = parseFloat(ethers.utils.formatEther(pendingWei));
-    const calculated = totalPending * 0.2;
-    const amountToUse = Math.min(calculated, 500);
-    const finalAmount = Math.floor(amountToUse * 1e18) / 1e18;
-
-    if (finalAmount <= 0) {
-      alert('当前无可用的待分配 USDT');
-      return;
-    }
-
-    if (library) {
-      const bnbBalance = await library.getBalance(currentAccount);
-      if (bnbBalance.lt(ethers.utils.parseEther('0.005'))) {
-        alert('BNB 余额不足，需要 0.005 BNB');
+      if (finalAmount <= 0) {
+        alert('当前无可用的待分配 USDT');
         return;
       }
+
+      if (library) {
+        const bnbBalance = await library.getBalance(currentAccount);
+        if (bnbBalance.lt(ethers.utils.parseEther('0.005'))) {
+          alert('BNB 余额不足，需要 0.005 BNB');
+          return;
+        }
+      }
+
+      const amount = ethers.utils.parseEther(finalAmount.toString());
+      const tx = await miningContract.addLiquidityFromPending(amount, {
+        value: ethers.utils.parseEther('0.005')
+      });
+      await tx.wait();
+
+      alert(`流动性添加成功！已使用 ${finalAmount} USDT`);
+      await loadTotalPendingUSDT();
+    } catch (error) {
+      console.error('添加流动性失败:', error);
+      alert('添加流动性失败: ' + error.message);
+    } finally {
+      setAddLiquidityLoading(false);
     }
+  };
 
-    const amount = ethers.utils.parseEther(finalAmount.toString());
-    const tx = await miningContract.addLiquidityFromPending(amount, {
-      value: ethers.utils.parseEther('0.005')
-    });
-    await tx.wait();
-
-    alert(`流动性添加成功！已使用 ${finalAmount} USDT`);
-    await loadTotalPendingUSDT();
-  } catch (error) {
-    console.error('添加流动性失败:', error);
-    alert('添加流动性失败: ' + error.message);
-  } finally {
-    setAddLiquidityLoading(false);
-  }
-};
-
-const copyToClipboard = async (text) => {
-  const textStr = String(text);
-  const btn = document.activeElement;
-  const originalText = btn.innerText;
-  const originalClasses = btn.className;
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(textStr);
-    } else {
-      const textarea = document.createElement('textarea');
-      textarea.value = textStr;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
+  const copyToClipboard = async (text) => {
+    const textStr = String(text);
+    const btn = document.activeElement;
+    const originalText = btn.innerText;
+    const originalClasses = btn.className;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(textStr);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = textStr;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      btn.innerText = tr('copied');
+      btn.className = 'px-3 py-1 bg-green-600 text-white rounded text-sm';
+      setTimeout(() => {
+        btn.innerText = originalText;
+        btn.className = originalClasses;
+      }, 1500);
+    } catch (error) {
+      alert(tr('copyFailed') + textStr);
     }
-    btn.innerText = tr('copied');
-    btn.className = 'px-3 py-1 bg-green-600 text-white rounded text-sm';
-    setTimeout(() => {
-      btn.innerText = originalText;
-      btn.className = originalClasses;
-    }, 1500);
-  } catch (error) {
-    alert(tr('copyFailed') + textStr);
-  }
-};
+  };
 
   const copyInviteLink = async () => {
     const inviteLink = `${window.location.origin}/?ref=${myInviteCode}`;
@@ -684,71 +736,71 @@ const copyToClipboard = async (text) => {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] relative">
-  {/* 视频背景层 */}
-  <video
-    autoPlay
-    loop
-    muted
-    playsInline
-    className="fixed top-0 left-0 w-full h-full object-cover z-0"
-  >
-    <source src="/videos/bcc.mp4" type="video/mp4" />
-  </video>
-  
-  {/* 半透明遮罩层（保证文字可读） */}
-  {isConnected && <div className="fixed top-0 left-0 w-full h-full bg-black/50 z-[1] pointer-events-none"></div>}
-  
-  <div className="relative w-full px-4 py-8 z-10">
-    <div className="max-w-2xl mx-auto">
+      {/* 视频背景层 */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="fixed top-0 left-0 w-full h-full object-cover z-0"
+      >
+        <source src="/videos/bcc.mp4" type="video/mp4" />
+      </video>
+      
+      {/* 半透明遮罩层（保证文字可读）- 连接钱包后显示 */}
+      {isConnected && <div className="fixed top-0 left-0 w-full h-full bg-black/60 z-[100] pointer-events-none"></div>}
+      
+      <div className="relative w-full px-4 py-8 z-10">
+        <div className="max-w-2xl mx-auto">
           {/* 头部 */}
           <header className={`${!shouldShowContent ? 'bg-transparent' : 'bg-white/95'} rounded-2xl shadow-xl p-6 mb-8`}>
-  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-    <h1 className="text-3xl font-bold text-red-600">{tr('appName')}</h1>
-    <div className="flex items-center space-x-3 flex-wrap justify-center gap-2">
-      {!shouldShowContent ? (
-  <div className="flex items-center space-x-3">
-    <button onClick={() => connectWallet(injected)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-      {tr('connectWallet')}
-    </button>
-    <LanguageSwitcher onLanguageChange={handleLanguageChange} />
-  </div>
-) : (
-  <>
-    <div className="flex items-center space-x-2">
-      <span className="text-gray-600 text-sm">
-        {currentAccount?.slice(0,6)}...{currentAccount?.slice(-4)}
-      </span>
-      {isPool && (
-        <button onClick={() => { if (featureConfig.features.showPoolBadge) setShowPoolPanel(true); }} className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-          ⛏️ {tr('miningPool')}
-        </button>
-      )}
-      {isNode && (
-        <button onClick={() => { if (featureConfig.features.showNodeBadge) setShowNodePanel(true); }} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-          🌟 {tr('nodeBadge')}
-        </button>
-      )}
-    </div>
-    {isOwner && (
-      <button onClick={() => setShowOwnerMenu(!showOwnerMenu)} className="p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
-        ⚙️
-      </button>
-    )}
-    {/* 添加流动性按钮 */}
-    <button
-  onClick={handleAddLiquidity}
-  disabled={addLiquidityLoading}
-  className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50"
->
-  {addLiquidityLoading ? tr('addingLiquidity') : tr('addLiquidity')}
-</button>
-    <LanguageSwitcher onLanguageChange={handleLanguageChange} />
-    <button onClick={disconnectWallet} className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm">{tr('disconnect')}</button>
-  </>
-)}
-    </div>
-  </div>
-</header>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <h1 className="text-3xl font-bold text-red-600">{tr('appName')}</h1>
+              <div className="flex items-center space-x-3 flex-wrap justify-center gap-2">
+                {!shouldShowContent ? (
+                  <div className="flex items-center space-x-3">
+                    <button onClick={() => connectWallet(injected)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                      {tr('connectWallet')}
+                    </button>
+                    <LanguageSwitcher onLanguageChange={handleLanguageChange} />
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-gray-600 text-sm">
+                        {currentAccount?.slice(0,6)}...{currentAccount?.slice(-4)}
+                      </span>
+                      {isPool && (
+                        <button onClick={() => { if (featureConfig.features.showPoolBadge) setShowPoolPanel(true); }} className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                          ⛏️ {tr('miningPool')}
+                        </button>
+                      )}
+                      {isNode && (
+                        <button onClick={() => { if (featureConfig.features.showNodeBadge) setShowNodePanel(true); }} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                          🌟 {tr('nodeBadge')}
+                        </button>
+                      )}
+                    </div>
+                    {isOwner && (
+                      <button onClick={() => setShowOwnerMenu(!showOwnerMenu)} className="p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
+                        ⚙️
+                      </button>
+                    )}
+                    {/* 添加流动性按钮 */}
+                    <button
+                      onClick={handleAddLiquidity}
+                      disabled={addLiquidityLoading}
+                      className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {addLiquidityLoading ? tr('addingLiquidity') : tr('addLiquidity')}
+                    </button>
+                    <LanguageSwitcher onLanguageChange={handleLanguageChange} />
+                    <button onClick={disconnectWallet} className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm">{tr('disconnect')}</button>
+                  </>
+                )}
+              </div>
+            </div>
+          </header>
 
           {shouldShowContent && (
             <>
@@ -786,8 +838,8 @@ const copyToClipboard = async (text) => {
                     <div className="flex items-center space-x-2">
                       <span className="font-mono font-bold text-blue-600">{myInviteCode}</span>
                       <button onClick={copyInviteLink} className="px-2 py-1 bg-blue-500 text-white rounded text-xs">
-                          📋 {tr('copyInviteLink')}
-                    </button>
+                        📋 {tr('copyInviteLink')}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -846,48 +898,98 @@ const copyToClipboard = async (text) => {
                 )}
               </div>
 
+              {/* LP 分红卡片 */}
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5 mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">💰</span>
+                  <h2 className="text-lg font-semibold">LP 分红</h2>
+                </div>
+                <div className="flex justify-between items-center flex-wrap gap-3">
+                  <div>
+                    <p className="text-gray-500 text-sm">待领取分红</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {parseFloat(pendingDividends).toFixed(6)} SMA
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleClaimDividends}
+                    disabled={dividendLoading || parseFloat(pendingDividends) <= 0}
+                    className={`px-6 py-2 rounded-lg text-white font-medium ${
+                      parseFloat(pendingDividends) <= 0
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
+                    }`}
+                  >
+                    {dividendLoading ? '领取中...' : '领取分红'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-3">
+                  💡 只有添加流动性（LP）的用户才能获得分红
+                </p>
+              </div>
+
               {/* 推荐奖励 */}
               <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5 mb-6">
-  <div className="flex items-center gap-2 mb-3">
-    <span className="text-lg">📈</span>
-    <h2 className="text-lg font-semibold">{tr('recommendReward')}</h2>
-  </div>
-  <div className="space-y-3">
-    <div className="flex justify-between">
-      <span className="text-gray-500 text-sm">{tr('earnedReferralReward')}</span>
-      <span className="font-bold text-green-600">{parseFloat(referralReward).toFixed(4)} SMA</span>
-    </div>
-    <div className="flex justify-between">
-      <span className="text-gray-500 text-sm">{tr('referralRewardCap')}</span>
-      <span className="font-bold text-blue-600">{parseFloat(referralCap).toFixed(4)} SMA</span>
-    </div>
-    <div className="flex justify-between">
-      <span className="text-gray-500 text-sm">{tr('remainingClaimable')}</span>
-      <span className="font-bold text-orange-600">{parseFloat(referralRemaining).toFixed(4)} SMA</span>
-    </div>
-    <div>
-      <div className="flex justify-between text-xs text-gray-500 mb-1">
-        <span>{tr('usageProgress')}</span>
-        <span>{referralPercentage.toFixed(1)}%</span>
-      </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
-        <div className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full" style={{ width: `${Math.min(100, referralPercentage)}%` }}></div>
-      </div>
-    </div>
-    <div className="p-2 bg-blue-50 rounded-lg">
-      <p className="text-xs text-blue-600">{tr('tip')}</p>
-    </div>
-  </div>
-</div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">📈</span>
+                  <h2 className="text-lg font-semibold">{tr('recommendReward')}</h2>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 text-sm">{tr('earnedReferralReward')}</span>
+                    <span className="font-bold text-green-600">{parseFloat(referralReward).toFixed(4)} SMA</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 text-sm">{tr('referralRewardCap')}</span>
+                    <span className="font-bold text-blue-600">{parseFloat(referralCap).toFixed(4)} SMA</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 text-sm">{tr('remainingClaimable')}</span>
+                    <span className="font-bold text-orange-600">{parseFloat(referralRemaining).toFixed(4)} SMA</span>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>{tr('usageProgress')}</span>
+                      <span>{referralPercentage.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full" style={{ width: `${Math.min(100, referralPercentage)}%` }}></div>
+                    </div>
+                  </div>
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-600">{tr('tip')}</p>
+                  </div>
+                </div>
+              </div>
 
               {/* 存款/提款 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5"><h3 className="font-semibold mb-3">{tr('deposit')}</h3><input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder={tr('enterAmount')} className="w-full p-2 border rounded-lg mb-3 text-sm" /><button onClick={handleDeposit} disabled={depositLoading || isButtonDisabled('deposit')} className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm">{featureConfig.globalMaintenance ? tr('maintenance') : depositLoading ? tr('depositing') : tr('deposit')}</button></div>
-                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5"><h3 className="font-semibold mb-3">{tr('withdraw')}</h3><input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder={tr('enterAmount')} className="w-full p-2 border rounded-lg mb-3 text-sm" /><button onClick={handleWithdraw} disabled={withdrawLoading || isButtonDisabled('withdraw')} className="w-full py-2 bg-yellow-600 text-white rounded-lg text-sm">{featureConfig.globalMaintenance ? tr('maintenance') : withdrawLoading ? tr('withdrawing') : tr('withdraw')}</button></div>
+                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5">
+                  <h3 className="font-semibold mb-3">{tr('deposit')}</h3>
+                  <input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder={tr('enterAmount')} className="w-full p-2 border rounded-lg mb-3 text-sm" />
+                  <button onClick={handleDeposit} disabled={depositLoading || isButtonDisabled('deposit')} className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm">
+                    {featureConfig.globalMaintenance ? tr('maintenance') : depositLoading ? tr('depositing') : tr('deposit')}
+                  </button>
+                </div>
+                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5">
+                  <h3 className="font-semibold mb-3">{tr('withdraw')}</h3>
+                  <input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder={tr('enterAmount')} className="w-full p-2 border rounded-lg mb-3 text-sm" />
+                  <button onClick={handleWithdraw} disabled={withdrawLoading || isButtonDisabled('withdraw')} className="w-full py-2 bg-yellow-600 text-white rounded-lg text-sm">
+                    {featureConfig.globalMaintenance ? tr('maintenance') : withdrawLoading ? tr('withdrawing') : tr('withdraw')}
+                  </button>
+                </div>
               </div>
 
               {/* 绑定推荐 */}
-              <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5"><h3 className="font-semibold mb-3">{tr('bindReferralDesc')}</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><input type="text" value={bindAddress} onChange={(e) => setBindAddress(e.target.value)} placeholder={tr('enterAddress')} className="p-2 border rounded-lg text-sm" /><button onClick={handleBind} disabled={bindLoading || isButtonDisabled('bind')} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm">{featureConfig.globalMaintenance ? tr('maintenance') : bindLoading ? tr('binding') : tr('bindReferral')}</button></div></div>
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5">
+                <h3 className="font-semibold mb-3">{tr('bindReferralDesc')}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input type="text" value={bindAddress} onChange={(e) => setBindAddress(e.target.value)} placeholder={tr('enterAddress')} className="p-2 border rounded-lg text-sm" />
+                  <button onClick={handleBind} disabled={bindLoading || isButtonDisabled('bind')} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm">
+                    {featureConfig.globalMaintenance ? tr('maintenance') : bindLoading ? tr('binding') : tr('bindReferral')}
+                  </button>
+                </div>
+              </div>
             </>
           )}
 
