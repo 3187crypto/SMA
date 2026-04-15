@@ -647,7 +647,12 @@ export const changeLanguage = (lang, setLang) => {
   window.location.reload();
 };
 
-// 在文件末尾，export default translations 之前添加
+// 添加这个函数
+export const setLanguage = (lang) => {
+  localStorage.setItem('language', lang);
+  window.location.reload();
+};
+
 export const languages = [
   { code: 'zh', name: '中文' },
   { code: 'en', name: 'English' },
