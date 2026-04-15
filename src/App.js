@@ -118,7 +118,8 @@ function App() {
     if (!miningContract) return;
     try {
       const price = await miningContract.getMarketPrice();
-      setCurrentMarketPrice(parseFloat(ethers.utils.formatEther(price)).toFixed(4));
+      // 注释掉这行，因为不需要这个 state
+      // setCurrentMarketPrice(parseFloat(ethers.utils.formatEther(price)).toFixed(4));
     } catch (e) {}
   };
 
