@@ -2,39 +2,39 @@
 const translations = {
   zh: {
     // 通用
-    appName: '比特超级矿工',
-    connectWallet: '连接钱包',
-    disconnect: '断开连接',
+    appName: '超級文化智能體',
+    connectWallet: '連接錢包',
+    disconnect: '斷開連接',
     refresh: '刷新',
-    maintenance: '维护中',
-    copied: '已复制',
-    copyFailed: '复制失败',
-    pleaseConnectWallet: '请先连接钱包',
-    pleaseEnterAmount: '请输入数量',
-    pleaseEnterValidAddress: '请输入有效地址',
-    enterAmount: '输入数量',
-    enterAddress: '输入钱包地址',
+    maintenance: '維護中',
+    copied: '已複製',
+    copyFailed: '複製失敗',
+    pleaseConnectWallet: '請先連接錢包',
+    pleaseEnterAmount: '請輸入數量',
+    pleaseEnterValidAddress: '請輸入有效地址',
+    enterAmount: '輸入數量',
+    enterAddress: '輸入錢包地址',
     
-    // 余额卡片
-    usdtBalance: 'USDT余额',
-    smaBalance: 'SMA余额',
-    currentPrice: '当前价格',
-    marketPrice: '市场价',
+    // 餘額卡片
+    usdtBalance: 'USDT餘額',
+    smaBalance: 'SMA餘額',
+    currentPrice: '當前價格',
+    marketPrice: '市場價',
     
-    // 邀请码
-    inviteCode: '邀请码',
-    generateInviteCode: '生成邀请码',
-    copyInviteLink: '复制邀请链接',
+    // 邀請碼
+    inviteCode: '邀請碼',
+    generateInviteCode: '生成邀請碼',
+    copyInviteLink: '複製邀請連結',
     generating: '生成中...',
     
-    // 我的资产
-    myAssets: '我的资产',
+    // 我的資產
+    myAssets: '我的資產',
     depositPrincipal: '存款本金',
-    remainingPrincipal: '剩余本金',
-    pendingReward: '待领奖励',
-    totalReward: '累计奖励',
-    claimReward: '领取奖励',
-    claiming: '领取中...',
+    remainingPrincipal: '剩餘本金',
+    pendingReward: '待領獎勵',
+    totalReward: '累計獎勵',
+    claimReward: '領取獎勵',
+    claiming: '領取中...',
     
     // 存款/提款
     deposit: '存款',
@@ -42,73 +42,73 @@ const translations = {
     withdraw: '提款',
     withdrawing: '提款中...',
     depositSuccess: '存款成功',
-    depositFailed: '存款失败',
+    depositFailed: '存款失敗',
     withdrawSuccess: '提款成功',
-    withdrawFailed: '提款失败',
-    claimSuccess: '领取成功',
-    claimFailed: '领取失败',
+    withdrawFailed: '提款失敗',
+    claimSuccess: '領取成功',
+    claimFailed: '領取失敗',
     
-    // 绑定推荐
-    bindReferral: '绑定推荐人',
-    bindReferralDesc: '绑定推荐人地址',
-    binding: '绑定中...',
-    bindSuccess: '绑定成功',
-    bindFailed: '绑定失败',
-    generateCodeSuccess: '邀请码生成成功',
-    generateCodeFailed: '邀请码生成失败',
+    // 綁定推薦
+    bindReferral: '綁定推薦人',
+    bindReferralDesc: '綁定推薦人地址',
+    binding: '綁定中...',
+    bindSuccess: '綁定成功',
+    bindFailed: '綁定失敗',
+    generateCodeSuccess: '邀請碼生成成功',
+    generateCodeFailed: '邀請碼生成失敗',
     
-    // 推荐奖励
-    recommendReward: '推荐奖励',
-    earnedReferralReward: '已获得推荐奖励',
-    referralRewardCap: '推荐奖励上限',
-    remainingClaimable: '可领取剩余',
-    usageProgress: '使用进度',
-    tip: '提示：推荐奖励上限为净存款的2倍',
+    // 推薦獎勵
+    recommendReward: '推薦獎勵',
+    earnedReferralReward: '已獲得推薦獎勵',
+    referralRewardCap: '推薦獎勵上限',
+    remainingClaimable: '可領取剩餘',
+    usageProgress: '使用進度',
+    tip: '提示：推薦獎勵上限為淨存款的2倍',
     
-    // 节点
-    becomeNode: '成为节点',
-    nodeBadge: '节点',
-    nodeTitle: '节点购买',
+    // 節點
+    becomeNode: '成為節點',
+    nodeBadge: '節點',
+    nodeTitle: '節點購買',
     nodePrice: '1,000 USDT',
-    nodeDesc: '购买后享受节点权益',
-    nodeApply: '立即购买',
-    nodeProcessing: '处理中...',
-    nodeSuccess: '购买成功',
-    paymentFailed: '支付失败',
-    nodeAgree: '我已阅读并同意节点协议',
-    nodeBenefits: '节点权益',
-    nodeBenefit1: '每日分红',
-    nodeBenefit2: '推荐奖励',
-    nodeBenefit3: '矿池收益',
-    nodeBenefit4: '治理投票权',
+    nodeDesc: '購買後享受節點權益',
+    nodeApply: '立即購買',
+    nodeProcessing: '處理中...',
+    nodeSuccess: '購買成功',
+    paymentFailed: '支付失敗',
+    nodeAgree: '我已閱讀並同意節點協議',
+    nodeBenefits: '節點權益',
+    nodeBenefit1: '每日分紅',
+    nodeBenefit2: '推薦獎勵',
+    nodeBenefit3: '礦池收益',
+    nodeBenefit4: '治理投票權',
     nodeAddressLabel: '收款地址',
     
-    // 矿池
-    miningPool: '矿池',
-    addLiquidity: '添加流动性',
+    // 礦池
+    miningPool: '礦池',
+    addLiquidity: '添加流動性',
     addingLiquidity: '添加中...',
     
-    // 团队
-    teamNetwork: '团队网络',
+    // 團隊
+    teamNetwork: '團隊網絡',
     
-    // LP分红
-    lpDividends: 'LP 分红',
-    pendingDividends: '待领取分红',
-    claimDividends: '领取分红',
-    claimingDividends: '领取中...',
-    dividendsTip: '只有添加流动性（LP）的用户才能获得分红',
+    // LP分紅
+    lpDividends: 'LP 分紅',
+    pendingDividends: '待領取分紅',
+    claimDividends: '領取分紅',
+    claimingDividends: '領取中...',
+    dividendsTip: '💡 只有添加流動性（LP）的用戶才能獲得分紅',
     
-    // 弹窗
-    bindReferralModal: '绑定推荐人',
-    enterInviteCode: '请输入邀请码',
-    inviteCodePlaceholder: '请输入6位邀请码',
-    pleaseEnterInviteCode: '请输入邀请码',
-    skip: '暂不绑定',
-    bind: '绑定'
+    // 彈窗
+    bindReferralModal: '綁定推薦人',
+    enterInviteCode: '請輸入邀請碼',
+    inviteCodePlaceholder: '請輸入6位邀請碼',
+    pleaseEnterInviteCode: '請輸入邀請碼',
+    skip: '暫不綁定',
+    bind: '綁定'
   },
   en: {
     // Common
-    appName: 'Bitcoin Super Miner',
+    appName: 'Super Culture Agent',
     connectWallet: 'Connect Wallet',
     disconnect: 'Disconnect',
     refresh: 'Refresh',
@@ -202,7 +202,7 @@ const translations = {
     pendingDividends: 'Pending Dividends',
     claimDividends: 'Claim Dividends',
     claimingDividends: 'Claiming...',
-    dividendsTip: 'Only users who added liquidity (LP) can receive dividends',
+    dividendsTip: '💡 Only users who added liquidity (LP) can receive dividends',
     
     // Modals
     bindReferralModal: 'Bind Referrer',
@@ -213,7 +213,7 @@ const translations = {
     bind: 'Bind'
   },
   ja: {
-    appName: 'ビットコインスーパーマイナー',
+    appName: 'スーパーカルチャーエージェント',
     connectWallet: 'ウォレット接続',
     disconnect: '切断',
     refresh: '更新',
@@ -287,7 +287,7 @@ const translations = {
     pendingDividends: '未払い配当',
     claimDividends: '配当を受け取る',
     claimingDividends: '受取中...',
-    dividendsTip: '流動性（LP）を追加したユーザーのみが配当を受け取れます',
+    dividendsTip: '💡 流動性（LP）を追加したユーザーのみが配当を受け取れます',
     bindReferralModal: '紹介者を登録',
     enterInviteCode: '招待コードを入力',
     inviteCodePlaceholder: '6桁のコードを入力',
@@ -296,7 +296,7 @@ const translations = {
     bind: '登録'
   },
   ko: {
-    appName: '비트코인 슈퍼 마이너',
+    appName: '슈퍼 컬처 에이전트',
     connectWallet: '지갑 연결',
     disconnect: '연결 해제',
     refresh: '새로고침',
@@ -370,7 +370,7 @@ const translations = {
     pendingDividends: '미지급 배당금',
     claimDividends: '배당금 받기',
     claimingDividends: '받는 중...',
-    dividendsTip: '유동성(LP)을 추가한 사용자만 배당금을 받을 수 있습니다',
+    dividendsTip: '💡 유동성(LP)을 추가한 사용자만 배당금을 받을 수 있습니다',
     bindReferralModal: '추천인 등록',
     enterInviteCode: '초대 코드 입력',
     inviteCodePlaceholder: '6자리 코드 입력',
@@ -379,7 +379,7 @@ const translations = {
     bind: '등록'
   },
   vi: {
-    appName: 'Bitcoin Super Miner',
+    appName: 'Siêu Trí Tuệ Văn Hóa',
     connectWallet: 'Kết nối ví',
     disconnect: 'Ngắt kết nối',
     refresh: 'Làm mới',
@@ -453,7 +453,7 @@ const translations = {
     pendingDividends: 'Cổ tức chờ nhận',
     claimDividends: 'Nhận cổ tức',
     claimingDividends: 'Đang nhận...',
-    dividendsTip: 'Chỉ người dùng đã thêm thanh khoản (LP) mới nhận được cổ tức',
+    dividendsTip: '💡 Chỉ người dùng đã thêm thanh khoản (LP) mới nhận được cổ tức',
     bindReferralModal: 'Đăng ký người giới thiệu',
     enterInviteCode: 'Nhập mã mời',
     inviteCodePlaceholder: 'Nhập mã 6 chữ số',
@@ -462,7 +462,7 @@ const translations = {
     bind: 'Đăng ký'
   },
   th: {
-    appName: 'Bitcoin Super Miner',
+    appName: 'ซูเปอร์คัลเจอร์เอเจนต์',
     connectWallet: 'เชื่อมต่อกระเป๋า',
     disconnect: 'ตัดการเชื่อมต่อ',
     refresh: 'รีเฟรช',
@@ -536,7 +536,7 @@ const translations = {
     pendingDividends: 'เงินปันผลรอรับ',
     claimDividends: 'รับเงินปันผล',
     claimingDividends: 'กำลังรับ...',
-    dividendsTip: 'เฉพาะผู้ที่เพิ่มสภาพคล่อง (LP) เท่านั้นที่จะได้รับเงินปันผล',
+    dividendsTip: '💡 เฉพาะผู้ที่เพิ่มสภาพคล่อง (LP) เท่านั้นที่จะได้รับเงินปันผล',
     bindReferralModal: 'ลงทะเบียนผู้แนะนำ',
     enterInviteCode: 'กรอกรหัสเชิญ',
     inviteCodePlaceholder: 'กรอกรหัส 6 หลัก',
@@ -545,7 +545,7 @@ const translations = {
     bind: 'ลงทะเบียน'
   },
   es: {
-    appName: 'Bitcoin Super Miner',
+    appName: 'Super Agente Cultural',
     connectWallet: 'Conectar Wallet',
     disconnect: 'Desconectar',
     refresh: 'Actualizar',
@@ -619,7 +619,7 @@ const translations = {
     pendingDividends: 'Dividendos Pendientes',
     claimDividends: 'Reclamar Dividendos',
     claimingDividends: 'Reclamando...',
-    dividendsTip: 'Solo los usuarios que agregaron liquidez (LP) pueden recibir dividendos',
+    dividendsTip: '💡 Solo los usuarios que agregaron liquidez (LP) pueden recibir dividendos',
     bindReferralModal: 'Registrar Referido',
     enterInviteCode: 'Ingrese código de invitación',
     inviteCodePlaceholder: 'Ingrese código de 6 dígitos',
@@ -647,7 +647,6 @@ export const changeLanguage = (lang, setLang) => {
   window.location.reload();
 };
 
-// 添加这个函数
 export const setLanguage = (lang) => {
   localStorage.setItem('language', lang);
   window.location.reload();
