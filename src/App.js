@@ -206,41 +206,50 @@ function App() {
     } catch (e) {}
   }, [currentAccount, miningContract]);
 
-  // ========== 查询待领取分红 ==========
-  const loadPendingDividends = async () => {
-    if (!currentAccount || !miningContract) return;
-    try {
-      const dividends = await miningContract.getPendingDividends(currentAccount);
-      setPendingDividends(ethers.utils.formatEther(dividends));
-      console.log('待领取分红:', ethers.utils.formatEther(dividends));
-    } catch (error) {
-      console.error('查询分红失败:', error);
-    }
-  };
+  // 查询待领取分红（代币合约没有查询函数，所以按钮始终可点）
+const loadPendingDividends = async () => {
+  if (!currentAccount) return;
+  // 没有查询函数，设置一个默认值，让按钮始终可点
+  setPendingDividends('待领取');
+};
 
-  // ========== 领取分红 ==========
-  const handleClaimDividends = async () => {
-    if (dividendLoading) return;
-    if (!currentAccount) {
-      alert('请先连接钱包');
+  // 领取分红（使用代币合约）
+const handleClaimDividends = async () => {
+  if (dividendLoading) return;
+  if (!currentAccount) {
+    alert('请先连接钱包');
+    return;
+  }
+  
+  setDividendLoading(true);
+  try {
+    // 使用代币合约（getCultureContract）
+    const tokenContract = getCultureContract;
+    if (!tokenContract) {
+      alert('无法连接代币合约');
       return;
     }
     
-    setDividendLoading(true);
-    try {
-      const tx = await miningContract.claimDividends();
-      await tx.wait();
-      alert('✅ 分红领取成功！');
-      await loadPendingDividends();
-      await loadUserData();
-      await loadBalances();
-    } catch (error) {
-      console.error('领取分红失败:', error);
+    console.log('正在领取分红...');
+    const tx = await tokenContract.claimDividends();
+    await tx.wait();
+    alert('✅ 分红领取成功！');
+    await loadUserData();
+    await loadBalances();
+  } catch (error) {
+    console.error('领取分红失败:', error);
+    // 根据错误信息给出更友好的提示
+    if (error.message.includes('no pending dividends')) {
+      alert('当前没有可领取的分红');
+    } else if (error.message.includes('insufficient balance')) {
+      alert('合约余额不足，无法发放分红');
+    } else {
       alert('领取分红失败: ' + (error.reason || error.message || '未知错误'));
-    } finally {
-      setDividendLoading(false);
     }
-  };
+  } finally {
+    setDividendLoading(false);
+  }
+};
 
   // ✅ 最终稳定版 loadUserData
   const loadUserData = async () => {
@@ -908,19 +917,15 @@ function App() {
                   <div>
                     <p className="text-gray-500 text-sm">待领取分红</p>
                     <p className="text-2xl font-bold text-green-600">
-                      {parseFloat(pendingDividends).toFixed(6)} SMA
-                    </p>
+                     {pendingDividends === '待领取' ? '点击领取' : parseFloat(pendingDividends).toFixed(6)} SMA
+                  </p>
                   </div>
                   <button
-                    onClick={handleClaimDividends}
-                    disabled={dividendLoading || parseFloat(pendingDividends) <= 0}
-                    className={`px-6 py-2 rounded-lg text-white font-medium ${
-                      parseFloat(pendingDividends) <= 0
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
-                    }`}
+                   onClick={handleClaimDividends}
+                   disabled={dividendLoading}
+                   className="px-6 py-2 rounded-lg text-white font-medium bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
                   >
-                    {dividendLoading ? '领取中...' : '领取分红'}
+                   {dividendLoading ? '领取中...' : '领取分红'}
                   </button>
                 </div>
                 <p className="text-xs text-gray-400 mt-3">
