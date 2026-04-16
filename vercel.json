@@ -2,5 +2,38 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "devCommand": "npm start",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "functions": {
+    "src/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "X-UA-Compatible",
+          "value": "IE=edge"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src * data: blob: 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval' data: blob: 'self'; connect-src * 'unsafe-inline' data: blob: ws: wss:; style-src * 'unsafe-inline' data: blob:; img-src * data: blob:; font-src * data:; frame-src *;"
+        }
+      ]
+    },
+    {
+      "source": "/static/js/(.*).js",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        }
+      ]
+    }
+  ]
 }
