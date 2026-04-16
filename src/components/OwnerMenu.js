@@ -944,11 +944,14 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                       const earnings = nodeEarnings[node];
                       return (
                         <div key={node} className="bg-gray-700 rounded-lg p-3">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-xs text-gray-400 font-mono">
-                              #{idx + 1} {node.slice(0, 8)}...{node.slice(-6)}
-                            </span>
-                          </div>
+                          <div className="flex flex-col gap-1"> 
+                          <span className="text-xs text-gray-400">
+                             #{idx + 1}
+                          </span>
+                          <span className="text-xs font-mono text-blue-300 break-all">
+                         {node}
+                         </span>
+                        </div>
                           {earnings && !earnings.error ? (
                             <div className="grid grid-cols-2 gap-2 text-xs">
                               <div>
