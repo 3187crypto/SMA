@@ -75,17 +75,18 @@
     ]
   },
   "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
+   "production": [
+     ">0.2%",
+     "not dead",
+     "not op_mini all",
+     "ie >= 11"
     ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
+  "development": [
+     "last 1 chrome version",
+     "last 1 firefox version",
+     "last 1 safari version"
     ]
-  },
+}
   "devDependencies": {
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.31",
