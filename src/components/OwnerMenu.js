@@ -36,6 +36,11 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState('switches');
   
+  // 节点列表相关 state
+  const [nodeList, setNodeList] = useState([]);
+  const [nodeEarnings, setNodeEarnings] = useState({});
+  const [nodeListLoading, setNodeListLoading] = useState(false);
+  
   // 治理相关状态
   const [memberAddress, setMemberAddress] = useState('');
   const [removeMemberAddress, setRemoveMemberAddress] = useState('');
@@ -90,6 +95,39 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       } catch (e) {}
     } catch (error) {
       console.error('加载资金池数据失败:', error);
+    }
+  };
+
+  // 加载所有节点列表和业绩
+  const loadNodeList = async () => {
+    if (!contract) return;
+    setNodeListLoading(true);
+    try {
+      // 获取所有节点地址
+      const nodes = await contract.getNodeList();
+      setNodeList(nodes);
+      
+      // 获取每个节点的业绩
+      const earningsMap = {};
+      for (const node of nodes) {
+        try {
+          const earnings = await contract.getNodeRealEarnings(node);
+          earningsMap[node] = {
+            miningReward: parseFloat(ethers.utils.formatEther(earnings[0])).toFixed(4),
+            claimed: parseFloat(ethers.utils.formatEther(earnings[1])).toFixed(4),
+            total: parseFloat(ethers.utils.formatEther(earnings[2])).toFixed(4),
+            lastSnapshot: earnings[3].toString(),
+            remainingCap: parseFloat(ethers.utils.formatEther(earnings[4])).toFixed(4)
+          };
+        } catch(e) {
+          earningsMap[node] = { error: true };
+        }
+      }
+      setNodeEarnings(earningsMap);
+    } catch (error) {
+      console.error('加载节点列表失败:', error);
+    } finally {
+      setNodeListLoading(false);
     }
   };
 
@@ -519,6 +557,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       showMessage(`成功添加节点: ${nodeAddress.slice(0,6)}...${nodeAddress.slice(-4)}`);
       setNodeAddress('');
       loadPendingData();
+      loadNodeList(); // 刷新节点列表
     } catch (error) {
       showMessage('添加节点失败: ' + error.message, 'error');
     } finally {
@@ -538,6 +577,7 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
       showMessage(`成功移除节点: ${removeNodeAddress.slice(0,6)}...${removeNodeAddress.slice(-4)}`);
       setRemoveNodeAddress('');
       loadPendingData();
+      loadNodeList(); // 刷新节点列表
     } catch (error) {
       showMessage('移除节点失败: ' + error.message, 'error');
     } finally {
@@ -550,8 +590,9 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     try {
       const tx = await contract.distributeNodeRewards();
       await tx.wait();
-      showMessage('节点SMA奖励发放成功');
+      showMessage('✅ 节点SMA奖励发放成功！奖励已自动转账到各节点地址');
       loadPendingData();
+      loadNodeList(); // 刷新节点列表和业绩
     } catch (error) {
       showMessage('发放节点奖励失败: ' + error.message, 'error');
     } finally {
@@ -594,6 +635,9 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     }
     if (activeTab === 'pools') {
       loadPoolList();
+    }
+    if (activeTab === 'nodes') {
+      loadNodeList();
     }
   }, [activeTab, contract, governanceContract]);
 
@@ -865,25 +909,84 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
 
           {activeTab === 'nodes' && (
             <div className="bg-gray-800 rounded-xl p-4 space-y-4">
+              {/* 统计信息 */}
               <div className="space-y-3 pb-3 border-b border-gray-700">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-base">节点数量:</span>
+                  <span className="text-gray-400 text-base">📊 节点数量:</span>
                   <span className="text-white text-base font-medium">{Number(nodeCount)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-base">待发放 SMA 奖励:</span>
-                  <span className="text-white text-base font-medium">{parseFloat(pendingNodeRewards).toFixed(2)} SMA</span>
+                  <span className="text-gray-400 text-base">💰 待发放 SMA 奖励:</span>
+                  <span className="text-white text-base font-medium">{parseFloat(pendingNodeRewards).toFixed(4)} SMA</span>
                 </div>
               </div>
 
+              {/* 节点列表和业绩 */}
               <div>
-                <h5 className="text-white text-base font-medium mb-3">添加节点</h5>
-                <div className="flex gap-3 mb-4">
+                <h5 className="text-white text-base font-medium mb-3 flex items-center gap-2">
+                  <span>📋</span> 节点列表 ({nodeList.length})
+                  <button 
+                    onClick={loadNodeList} 
+                    disabled={nodeListLoading}
+                    className="px-2 py-1 bg-gray-600 text-white text-xs rounded-lg hover:bg-gray-500"
+                  >
+                    🔄 刷新
+                  </button>
+                </h5>
+                
+                {nodeListLoading ? (
+                  <div className="text-center py-4 text-gray-400 text-sm">加载中...</div>
+                ) : nodeList.length === 0 ? (
+                  <div className="text-center py-4 text-gray-400 text-sm">暂无节点</div>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {nodeList.map((node, idx) => {
+                      const earnings = nodeEarnings[node];
+                      return (
+                        <div key={node} className="bg-gray-700 rounded-lg p-3">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-xs text-gray-400 font-mono">
+                              #{idx + 1} {node.slice(0, 8)}...{node.slice(-6)}
+                            </span>
+                          </div>
+                          {earnings && !earnings.error ? (
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-gray-400">挖矿奖励:</span>
+                                <span className="ml-1 text-green-400">{earnings.miningReward} SMA</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-400">已领取:</span>
+                                <span className="ml-1 text-blue-400">{earnings.claimed} SMA</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-400">总奖励:</span>
+                                <span className="ml-1 text-yellow-400">{earnings.total} SMA</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-400">剩余上限:</span>
+                                <span className="ml-1 text-purple-400">{earnings.remainingCap} SMA</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-red-400">加载失败</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 添加节点 */}
+              <div>
+                <h5 className="text-white text-base font-medium mb-3">➕ 添加节点</h5>
+                <div className="flex gap-3">
                   <input
                     type="text"
                     value={nodeAddress}
                     onChange={(e) => setNodeAddress(e.target.value)}
-                    placeholder="输入地址"
+                    placeholder="输入钱包地址"
                     className="flex-1 p-3 rounded-xl bg-gray-700 text-white text-base"
                   />
                   <button
@@ -894,14 +997,17 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                     添加
                   </button>
                 </div>
+              </div>
 
-                <h5 className="text-white text-base font-medium mb-3">移除节点</h5>
+              {/* 移除节点 */}
+              <div>
+                <h5 className="text-white text-base font-medium mb-3">❌ 移除节点</h5>
                 <div className="flex gap-3">
                   <input
                     type="text"
                     value={removeNodeAddress}
                     onChange={(e) => setRemoveNodeAddress(e.target.value)}
-                    placeholder="输入地址"
+                    placeholder="输入钱包地址"
                     className="flex-1 p-3 rounded-xl bg-gray-700 text-white text-base"
                   />
                   <button
@@ -914,16 +1020,17 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
                 </div>
               </div>
 
-              <div className="pt-3">
+              {/* 发放奖励按钮 */}
+              <div className="pt-3 border-t border-gray-700">
                 <button
                   onClick={handleDistributeNodeRewards}
                   disabled={loading || parseFloat(pendingNodeRewards) <= 0}
-                  className="w-full py-3 bg-purple-600 text-white rounded-xl text-base font-medium disabled:opacity-50"
+                  className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl text-base font-medium disabled:opacity-50 disabled:from-gray-600 disabled:to-gray-600"
                 >
-                  发放 SMA 奖励
+                  {loading ? '发放中...' : `🎁 发放节点奖励 (${parseFloat(pendingNodeRewards).toFixed(4)} SMA)`}
                 </button>
-                <p className="text-gray-500 text-sm mt-3 text-center">
-                  SMA 奖励将按节点贡献分配
+                <p className="text-gray-500 text-xs mt-3 text-center">
+                  💡 奖励将自动转账到各节点地址，按节点贡献分配
                 </p>
               </div>
             </div>
