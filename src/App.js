@@ -72,17 +72,17 @@ function App() {
   const [addLiquidityLoading, setAddLiquidityLoading] = useState(false);
   const [totalPendingUSDT, setTotalPendingUSDT] = useState('0');
   
-  // ========== LP 分红相关 state ==========
+  // ========== LP 分紅相關 state ==========
   const [pendingDividends, setPendingDividends] = useState('0');
   const [dividendLoading, setDividendLoading] = useState(false);
   
-  // 推荐奖励相关 state
+  // 推薦獎勵相關 state
   const [referralReward, setReferralReward] = useState('0');
   const [referralCap, setReferralCap] = useState('0');
   const [referralRemaining, setReferralRemaining] = useState('0');
   const [referralPercentage, setReferralPercentage] = useState(0);
   
-  // 冷却倒计时 state
+  // 冷卻倒計時 state
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   
   const currentAccount = account || manualAccount;
@@ -113,16 +113,16 @@ function App() {
     return new ethers.Contract(CULTURE_ADDRESS, ERC20ABI, signer);
   }, [library]);
 
-    // 获取当前市场价格
+  // 獲取當前市場價格
   const updateMarketPrice = async () => {
     if (!miningContract) return;
     try {
       const price = await miningContract.getMarketPrice();
-      // setCurrentMarketPrice 已删除，因为不再需要
+      // setCurrentMarketPrice 已刪除，因為不再需要
     } catch (e) {}
   };
 
-  // 读取 URL 中的邀请码（暂存）
+  // 讀取 URL 中的邀請碼（暫存）
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
@@ -131,7 +131,7 @@ function App() {
     }
   }, [myInviteCode]);
 
-  // 钱包连接后处理邀请码
+  // 錢包連接後處理邀請碼
   useEffect(() => {
     if (currentAccount && !myInviteCode) {
       const pendingCode = localStorage.getItem('pendingInviteCode');
@@ -194,7 +194,7 @@ function App() {
     setIsConnected(false);
   };
 
-  // 更新冷却时间
+  // 更新冷卻時間
   const updateCooldown = useCallback(async () => {
     if (!currentAccount || !miningContract) return;
     try {
@@ -206,52 +206,71 @@ function App() {
     } catch (e) {}
   }, [currentAccount, miningContract]);
 
-  // 查询待领取分红（代币合约没有查询函数，所以按钮始终可点）
-const loadPendingDividends = async () => {
-  if (!currentAccount) return;
-  // 没有查询函数，设置一个默认值，让按钮始终可点
-  setPendingDividends('待领取');
-};
+  // ========== 查詢待領取分紅（使用代幣合約） ==========
+  const loadPendingDividends = async () => {
+    if (!currentAccount) return;
+    try {
+      const tokenContract = getCultureContract;
+      if (!tokenContract) {
+        console.log('代幣合約未就緒');
+        return;
+      }
+      
+      const dividends = await tokenContract.getPendingDividends(currentAccount);
+      const dividendsNum = parseFloat(ethers.utils.formatEther(dividends));
+      setPendingDividends(dividendsNum.toFixed(6));
+      console.log('✅ 待領取分紅:', dividendsNum.toFixed(6), 'SMA');
+    } catch (error) {
+      console.error('查詢分紅失敗:', error);
+      setPendingDividends('0');
+    }
+  };
 
-  // 领取分红（使用代币合约）
-const handleClaimDividends = async () => {
-  if (dividendLoading) return;
-  if (!currentAccount) {
-    alert('请先连接钱包');
-    return;
-  }
-  
-  setDividendLoading(true);
-  try {
-    // 使用代币合约（getCultureContract）
-    const tokenContract = getCultureContract;
-    if (!tokenContract) {
-      alert('无法连接代币合约');
+  // ========== 領取分紅（使用代幣合約） ==========
+  const handleClaimDividends = async () => {
+    if (dividendLoading) return;
+    if (!currentAccount) {
+      alert('請先連接錢包');
       return;
     }
     
-    console.log('正在领取分红...');
-    const tx = await tokenContract.claimDividends();
-    await tx.wait();
-    alert('✅ 分红领取成功！');
-    await loadUserData();
-    await loadBalances();
-  } catch (error) {
-    console.error('领取分红失败:', error);
-    // 根据错误信息给出更友好的提示
-    if (error.message.includes('no pending dividends')) {
-      alert('当前没有可领取的分红');
-    } else if (error.message.includes('insufficient balance')) {
-      alert('合约余额不足，无法发放分红');
-    } else {
-      alert('领取分红失败: ' + (error.reason || error.message || '未知错误'));
+    // 檢查是否有分紅可領
+    if (parseFloat(pendingDividends) <= 0) {
+      alert('目前沒有可領取的分紅');
+      return;
     }
-  } finally {
-    setDividendLoading(false);
-  }
-};
+    
+    setDividendLoading(true);
+    try {
+      const tokenContract = getCultureContract;
+      if (!tokenContract) {
+        alert('無法連接代幣合約');
+        return;
+      }
+      
+      console.log('正在領取分紅...');
+      const tx = await tokenContract.claimDividends();
+      await tx.wait();
+      alert(`✅ 成功領取 ${pendingDividends} SMA 分紅！`);
+      // 刷新數據
+      await loadPendingDividends();
+      await loadUserData();
+      await loadBalances();
+    } catch (error) {
+      console.error('領取分紅失敗:', error);
+      if (error.message.includes('no pending') || error.message.includes('No pending')) {
+        alert('目前沒有可領取的分紅');
+      } else if (error.message.includes('user rejected')) {
+        alert('您取消了交易');
+      } else {
+        alert('領取分紅失敗: ' + (error.reason || error.message || '未知錯誤'));
+      }
+    } finally {
+      setDividendLoading(false);
+    }
+  };
 
-  // ✅ 最终稳定版 loadUserData
+  // ✅ 最終穩定版 loadUserData
   const loadUserData = async () => {
     const currentAccount = account || manualAccount;
     if (!currentAccount || !miningContract) return;
@@ -265,7 +284,7 @@ const handleClaimDividends = async () => {
       const cumulativeWithdrawn = info.cumulativeWithdrawn || info[5];
       const totalMiningRewarded = info.totalMiningRewarded || info[6];
 
-      // 推荐奖励数据
+      // 推薦獎勵數據
       let referralRewardNum = 0;
       let poolRewardNum = 0;
       try {
@@ -287,7 +306,7 @@ const handleClaimDividends = async () => {
       setReferralRemaining(remainingCapNum.toFixed(4));
       setReferralPercentage(percentage);
 
-      // 累计奖励（挖矿 + 矿池 + 节点）
+      // 累計獎勵（挖礦 + 礦池 + 節點）
       let finalTotalReward = parseFloat(ethers.utils.formatEther(totalMiningRewarded || 0));
       finalTotalReward += poolRewardNum;
       try {
@@ -319,13 +338,13 @@ const handleClaimDividends = async () => {
 
       await updateCooldown();
       await updateMarketPrice();
-      await loadPendingDividends(); // 加载分红
+      await loadPendingDividends(); // 加載分紅
     } catch (error) {
-      console.error('加载用户数据失败:', error);
+      console.error('加載用戶數據失敗:', error);
     }
   };
 
-  // 定时更新冷却时间
+  // 定時更新冷卻時間
   useEffect(() => {
     if (!currentAccount) return;
     updateCooldown();
@@ -333,7 +352,7 @@ const handleClaimDividends = async () => {
     return () => clearInterval(interval);
   }, [currentAccount, updateCooldown]);
 
-  // 定时更新市场价格
+  // 定時更新市場價格
   useEffect(() => {
     if (!miningContract) return;
     updateMarketPrice();
@@ -341,7 +360,7 @@ const handleClaimDividends = async () => {
     return () => clearInterval(interval);
   }, [miningContract]);
 
-  // ✅ 最终版弹窗判断（自己查链上，不依赖参数）
+  // ✅ 最終版彈窗判斷（自己查鏈上，不依賴參數）
   const checkAndShowInviteModal = async () => {
     if (sessionStorage.getItem('inviteSkipped') === 'true') return;
     if (myInviteCode) return;
@@ -366,7 +385,7 @@ const handleClaimDividends = async () => {
     setShowInviteModal(true);
   };
 
-  // 在钱包连接后主动触发一次弹窗检查（先加载数据，再弹窗）
+  // 在錢包連接後主動觸發一次彈窗檢查（先加載數據，再彈窗）
   useEffect(() => {
     if (currentAccount && miningContract) {
       loadUserData().then(() => {
@@ -421,7 +440,7 @@ const handleClaimDividends = async () => {
       window._currentUserAddress = currentAccount;
 
       const handleBound = async (downline, upline, event) => {
-        console.log("🔥 Bound 事件触发", { downline, upline });
+        console.log("🔥 Bound 事件觸發", { downline, upline });
 
         const blockNumber = event.blockNumber;
         await saveBindingToCloud(upline, downline, blockNumber);
@@ -440,12 +459,12 @@ const handleClaimDividends = async () => {
     }
   }, [account, manualAccount, miningContract]);
 
-  // 监听矿池设置事件，自动同步到 Supabase
+  // 監聽礦池設置事件，自動同步到 Supabase
   useEffect(() => {
     if (!miningContract) return;
 
     const handleMiningPoolSet = async (pool, status, event) => {
-      console.log("⛏️ 矿池设置事件", { pool, status });
+      console.log("⛏️ 礦池設置事件", { pool, status });
 
       const { error } = await supabase
         .from('pool_performance')
@@ -457,7 +476,7 @@ const handleClaimDividends = async () => {
           onConflict: 'pool_address'
         });
 
-      if (error) console.error("同步矿池失败:", error);
+      if (error) console.error("同步礦池失敗:", error);
     };
 
     miningContract.on("MiningPoolSet", handleMiningPoolSet);
@@ -479,18 +498,18 @@ const handleClaimDividends = async () => {
     }
   }, [account, manualAccount, miningContract]);
 
-  // ========== 获取待分配 USDT 总额 ==========
+  // ========== 獲取待分配 USDT 總額 ==========
   const loadTotalPendingUSDT = async () => {
     if (!miningContract) return;
     try {
       const pending = await miningContract.totalPendingUSDT();
       setTotalPendingUSDT(ethers.utils.formatEther(pending));
     } catch (error) {
-      console.error('获取待分配USDT失败:', error);
+      console.error('獲取待分配USDT失敗:', error);
     }
   };
 
-  // ========== 添加流动性 ==========
+  // ========== 添加流動性 ==========
   const handleAddLiquidity = async () => {
     if (addLiquidityLoading) return;
     setAddLiquidityLoading(true);
@@ -503,14 +522,14 @@ const handleClaimDividends = async () => {
       const finalAmount = Math.floor(amountToUse * 1e18) / 1e18;
 
       if (finalAmount <= 0) {
-        alert('当前无可用的待分配 USDT');
+        alert('目前無可用的待分配 USDT');
         return;
       }
 
       if (library) {
         const bnbBalance = await library.getBalance(currentAccount);
         if (bnbBalance.lt(ethers.utils.parseEther('0.005'))) {
-          alert('BNB 余额不足，需要 0.005 BNB');
+          alert('BNB 餘額不足，需要 0.005 BNB');
           return;
         }
       }
@@ -521,11 +540,11 @@ const handleClaimDividends = async () => {
       });
       await tx.wait();
 
-      alert(`流动性添加成功！已使用 ${finalAmount} USDT`);
+      alert(`流動性添加成功！已使用 ${finalAmount} USDT`);
       await loadTotalPendingUSDT();
     } catch (error) {
-      console.error('添加流动性失败:', error);
-      alert('添加流动性失败: ' + error.message);
+      console.error('添加流動性失敗:', error);
+      alert('添加流動性失敗: ' + error.message);
     } finally {
       setAddLiquidityLoading(false);
     }
@@ -562,7 +581,7 @@ const handleClaimDividends = async () => {
     const inviteLink = `${window.location.origin}/?ref=${myInviteCode}`;
     try {
       await navigator.clipboard.writeText(inviteLink);
-      alert('邀请链接已复制！');
+      alert('邀請連結已複製！');
     } catch (err) {
       const textarea = document.createElement('textarea');
       textarea.value = inviteLink;
@@ -570,7 +589,7 @@ const handleClaimDividends = async () => {
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
-      alert('邀请链接已复制！');
+      alert('邀請連結已複製！');
     }
   };
 
@@ -744,24 +763,23 @@ const handleClaimDividends = async () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] relative">
-      {/* 视频背景层 */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="fixed top-0 left-0 w-full h-full object-cover z-0"
-      >
-        <source src="/videos/bcc.mp4" type="video/mp4" />
-      </video>
-      
-      {/* 半透明遮罩层（保证文字可读）- 连接钱包后显示 */}
-      {isConnected && <div className="fixed top-0 left-0 w-full h-full bg-black/60 z-[100] pointer-events-none"></div>}
+    <div className="min-h-screen relative" style={{ backgroundColor: isConnected ? '#000000' : '#0A0A0A' }}>
+      {/* 視頻背景層 - 僅在未連接錢包時顯示 */}
+      {!isConnected && (
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="fixed top-0 left-0 w-full h-full object-cover z-0"
+        >
+          <source src="/videos/bcc.mp4" type="video/mp4" />
+        </video>
+      )}
       
       <div className="relative w-full px-4 py-8 z-10">
         <div className="max-w-2xl mx-auto">
-          {/* 头部 */}
+          {/* 頭部 */}
           <header className={`${!shouldShowContent ? 'bg-transparent' : 'bg-white/95'} rounded-2xl shadow-xl p-6 mb-8`}>
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <h1 className="text-3xl font-bold text-red-600">{tr('appName')}</h1>
@@ -795,7 +813,7 @@ const handleClaimDividends = async () => {
                         ⚙️
                       </button>
                     )}
-                    {/* 添加流动性按钮 */}
+                    {/* 添加流動性按鈕 */}
                     <button
                       onClick={handleAddLiquidity}
                       disabled={addLiquidityLoading}
@@ -813,7 +831,7 @@ const handleClaimDividends = async () => {
 
           {shouldShowContent && (
             <>
-              {/* 余额卡片 */}
+              {/* 餘額卡片 */}
               {featureConfig.features.showPrice && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                   <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4">
@@ -835,7 +853,7 @@ const handleClaimDividends = async () => {
                 </div>
               )}
 
-              {/* 邀请码 */}
+              {/* 邀請碼 */}
               <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5 mb-6">
                 <div className="flex justify-between items-center flex-wrap gap-2">
                   <h2 className="text-lg font-semibold">{tr('inviteCode')}</h2>
@@ -857,10 +875,10 @@ const handleClaimDividends = async () => {
                     {`${window.location.origin}/?ref=${myInviteCode}`}
                   </div>
                 )}
-                <div className="mt-2 text-center text-xs text-gray-400">比特超级矿工 · SMA</div>
+                <div className="mt-2 text-center text-xs text-gray-400">比特超級礦工 · SMA</div>
               </div>
 
-              {/* 我的资产 */}
+              {/* 我的資產 */}
               <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5 mb-6">
                 <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
                   <h2 className="text-lg font-semibold">{tr('myAssets')}</h2>
@@ -907,33 +925,37 @@ const handleClaimDividends = async () => {
                 )}
               </div>
 
-              {/* LP 分红卡片 */}
+              {/* LP 分紅卡片 */}
               <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5 mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">💰</span>
-                  <h2 className="text-lg font-semibold">LP 分红</h2>
+                  <h2 className="text-lg font-semibold">LP 分紅</h2>
                 </div>
                 <div className="flex justify-between items-center flex-wrap gap-3">
                   <div>
-                    <p className="text-gray-500 text-sm">待领取分红</p>
+                    <p className="text-gray-500 text-sm">待領取分紅</p>
                     <p className="text-2xl font-bold text-green-600">
-                     {pendingDividends === '待领取' ? '点击领取' : parseFloat(pendingDividends).toFixed(6)} SMA
-                  </p>
+                      {parseFloat(pendingDividends) > 0 ? pendingDividends : '0.000000'} SMA
+                    </p>
                   </div>
                   <button
-                   onClick={handleClaimDividends}
-                   disabled={dividendLoading}
-                   className="px-6 py-2 rounded-lg text-white font-medium bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                    onClick={handleClaimDividends}
+                    disabled={dividendLoading || parseFloat(pendingDividends) <= 0}
+                    className={`px-6 py-2 rounded-lg text-white font-medium ${
+                      parseFloat(pendingDividends) <= 0
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
+                    }`}
                   >
-                   {dividendLoading ? '领取中...' : '领取分红'}
+                    {dividendLoading ? '領取中...' : '領取分紅'}
                   </button>
                 </div>
                 <p className="text-xs text-gray-400 mt-3">
-                  💡 只有添加流动性（LP）的用户才能获得分红
+                  💡 只有添加流動性（LP）的用戶才能獲得分紅
                 </p>
               </div>
 
-              {/* 推荐奖励 */}
+              {/* 推薦獎勵 */}
               <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5 mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">📈</span>
@@ -985,7 +1007,7 @@ const handleClaimDividends = async () => {
                 </div>
               </div>
 
-              {/* 绑定推荐 */}
+              {/* 綁定推薦 */}
               <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-5">
                 <h3 className="font-semibold mb-3">{tr('bindReferralDesc')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -998,7 +1020,7 @@ const handleClaimDividends = async () => {
             </>
           )}
 
-          {/* 弹窗 */}
+          {/* 彈窗 */}
           {showInviteModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
@@ -1006,8 +1028,8 @@ const handleClaimDividends = async () => {
                 <p className="text-gray-600 mb-4 text-sm">{tr('enterInviteCode')}</p>
                 <input type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} placeholder={tr('inviteCodePlaceholder')} className="w-full p-2 border rounded-lg mb-4" readOnly={inviteCode && window.location.search.includes('ref')} />
                 <div className="flex flex-col gap-2">
-                  <button onClick={handleRegisterWithInvite} disabled={inviteLoading || !inviteCode} className="py-2 bg-blue-600 text-white rounded-lg">绑定</button>
-                  <button onClick={handleSkipInvite} className="py-2 bg-gray-500 text-white rounded-lg">暂不绑定</button>
+                  <button onClick={handleRegisterWithInvite} disabled={inviteLoading || !inviteCode} className="py-2 bg-blue-600 text-white rounded-lg">綁定</button>
+                  <button onClick={handleSkipInvite} className="py-2 bg-gray-500 text-white rounded-lg">暫不綁定</button>
                 </div>
               </div>
             </div>
