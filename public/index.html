@@ -3,9 +3,101 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
-  <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval' data: blob: 'self'; connect-src * 'unsafe-inline' data: blob: ws: wss:; style-src * 'unsafe-inline' data: blob:; img-src * data: blob:; font-src * data:; frame-src *;">
+  <!-- 强制 IE 使用最新渲染模式 -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!-- 禁用反向/正向缓存（解决 DOM7011 警告） -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
   <title>Bitcoin Super Miner | SMA</title>
+  
+  <!-- 全局 polyfill - 必须在所有脚本之前加载 -->
+  <script>
+    // 手动实现 globalThis
+    if (typeof globalThis === 'undefined') {
+      (function() {
+        if (typeof self !== 'undefined') { self.globalThis = self; }
+        else if (typeof window !== 'undefined') { window.globalThis = window; }
+        else if (typeof global !== 'undefined') { global.globalThis = global; }
+        else { this.globalThis = this; }
+      })();
+    }
+    
+    // 手动实现 Array.prototype.fill
+    if (!Array.prototype.fill) {
+      Array.prototype.fill = function(value) {
+        if (this == null) {
+          throw new TypeError('this is null or not defined');
+        }
+        var O = Object(this);
+        var len = O.length >>> 0;
+        var start = arguments[1];
+        var relativeStart = start >> 0;
+        var k = relativeStart < 0 ? Math.max(len + relativeStart, 0) : Math.min(relativeStart, len);
+        var end = arguments[2];
+        var relativeEnd = end === undefined ? len : end >> 0;
+        var final = relativeEnd < 0 ? Math.max(len + relativeEnd, 0) : Math.min(relativeEnd, len);
+        while (k < final) {
+          O[k] = value;
+          k++;
+        }
+        return O;
+      };
+    }
+    
+    // 手动实现 Promise（如果不存在）
+    if (typeof Promise === 'undefined') {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/promise-polyfill@8.2.0/dist/polyfill.min.js';
+      document.head.appendChild(script);
+    }
+    
+    // 手动实现 Object.assign
+    if (typeof Object.assign !== 'function') {
+      Object.assign = function(target) {
+        if (target == null) {
+          throw new TypeError('Cannot convert undefined or null to object');
+        }
+        var to = Object(target);
+        for (var index = 1; index < arguments.length; index++) {
+          var nextSource = arguments[index];
+          if (nextSource != null) {
+            for (var nextKey in nextSource) {
+              if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                to[nextKey] = nextSource[nextKey];
+              }
+            }
+          }
+        }
+        return to;
+      };
+    }
+    
+    console.log('✅ Polyfill 已加载');
+  </script>
+  
+  <!-- 加载 ethers.js -->
   <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  
+  <!-- 浏览器检测，提示升级 -->
+  <script>
+    (function() {
+      var isOldIE = false;
+      try {
+        eval('const test = 1');
+      } catch(e) {
+        isOldIE = true;
+      }
+      
+      if (isOldIE || typeof Promise === 'undefined' || typeof Array.prototype.fill !== 'function') {
+        var warningDiv = document.createElement('div');
+        warningDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ff4444;color:white;text-align:center;padding:15px;z-index:99999;font-size:16px;';
+        warningDiv.innerHTML = '您的浏览器版本过低，请升级到最新版 Chrome、Edge 或 Firefox 浏览器以获得最佳体验。';
+        document.body.appendChild(warningDiv);
+      }
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>
