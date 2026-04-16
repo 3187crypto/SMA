@@ -190,40 +190,71 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     }
   };
 
-  // 加载矿池列表
-  const loadPoolList = async () => {
-    setPoolListLoading(true);
-    try {
-      const pools = await getAllPoolsFromDB();
-      const enrichedPools = [];
-      for (const pool of pools) {
-        try {
-          const performance = await getPoolPerformance(contract, pool.pool_address, pool);
-          enrichedPools.push({
-            ...pool,
-            ...performance,
-            team_mining: performance.teamMining,
-            requirement: performance.requirement,
-            remaining_days: performance.remainingDays,
-            is_qualified: performance.isQualified
-          });
-        } catch (e) {
-          enrichedPools.push({
-            ...pool,
-            team_mining: 0,
-            requirement: 1000,
-            remaining_days: 45,
-            is_qualified: false
-          });
-        }
+  // 加载矿池列表（直接从合约读取）
+const loadPoolList = async () => {
+  if (!contract) return;
+  setPoolListLoading(true);
+  try {
+    // 获取所有矿池地址
+    const poolAddresses = await contract.getAllPools();
+    const now = Math.floor(Date.now() / 1000);
+    const enrichedPools = [];
+    
+    for (const poolAddress of poolAddresses) {
+      try {
+        // 从合约获取矿池数据
+        const teamMining = await contract.getPoolTeamMining(poolAddress);
+        const requirement = await contract.getPoolRequirement(poolAddress);
+        const periodStart = await contract.getPoolPeriodStart(poolAddress);
+        const periodsCompleted = await contract.getPoolPeriodsCompleted(poolAddress);
+        const childPools = await contract.getPoolChildPools(poolAddress);
+        
+        // 计算当前周期要求（每45天增加300 SMA）
+        // 第1周期（periodsCompleted=0）：1000
+        // 第2周期（periodsCompleted=1）：1300
+        // 第3周期（periodsCompleted=2）：1600
+        const currentRequirement = 1000 + (Number(periodsCompleted) * 300);
+        
+        // 计算剩余天数
+        const startTime = Number(periodStart);
+        const elapsedDays = (now - startTime) / 86400;
+        const remainingDays = Math.max(0, 45 - elapsedDays);
+        
+        // 判断是否达标
+        const teamMiningNum = parseFloat(ethers.utils.formatEther(teamMining));
+        const isQualified = teamMiningNum >= currentRequirement;
+        
+        enrichedPools.push({
+          pool_address: poolAddress,
+          team_mining: teamMiningNum,
+          requirement: currentRequirement,
+          remaining_days: remainingDays,
+          is_qualified: isQualified,
+          periods_completed: Number(periodsCompleted),
+          period_start: startTime,
+          child_pools: childPools,
+          is_active: true
+        });
+      } catch (e) {
+        console.error(`加载矿池 ${poolAddress} 失败:`, e);
+        enrichedPools.push({
+          pool_address: poolAddress,
+          team_mining: 0,
+          requirement: 1000,
+          remaining_days: 45,
+          is_qualified: false,
+          periods_completed: 0,
+          is_active: true
+        });
       }
-      setPoolList(enrichedPools);
-    } catch (error) {
-      console.error('加载矿池列表失败:', error);
-    } finally {
-      setPoolListLoading(false);
     }
-  };
+    setPoolList(enrichedPools);
+  } catch (error) {
+    console.error('加载矿池列表失败:', error);
+  } finally {
+    setPoolListLoading(false);
+  }
+};
 
   // 同步矿池数据
   const syncPoolData = async () => {
@@ -240,30 +271,23 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   };
 
   // 取消矿池资格
-  const cancelPool = async (poolAddress) => {
-    const shortAddr = `${poolAddress.slice(0, 8)}...${poolAddress.slice(-6)}`;
-    if (!window.confirm(`确定要取消矿池 ${shortAddr} 的资格吗？\n此操作不可逆。`)) {
-      return;
-    }
-    setLoading(true);
-    try {
-      const tx = await contract.setMiningPool(poolAddress, false);
-      await tx.wait();
-      showMessage(`矿池 ${shortAddr} 已取消资格`);
-      
-      await supabase
-        .from('pool_performance')
-        .update({ is_active: false })
-        .eq('pool_address', poolAddress);
-      
-      await logPerformanceHistory(poolAddress, 'cancel', null, null, '管理员手动取消');
-      await loadPoolList();
-    } catch (error) {
-      showMessage('取消资格失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+const cancelPool = async (poolAddress) => {
+  const shortAddr = `${poolAddress.slice(0, 8)}...${poolAddress.slice(-6)}`;
+  if (!window.confirm(`确定要删除矿池 ${shortAddr} 吗？\n删除后该地址将不再享受矿池权益。`)) {
+    return;
+  }
+  setLoading(true);
+  try {
+    const tx = await contract.setMiningPool(poolAddress, false);
+    await tx.wait();
+    showMessage(`矿池 ${shortAddr} 已删除`);
+    await loadPoolList(); // 刷新列表
+  } catch (error) {
+    showMessage('删除失败: ' + error.message, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ========== 治理功能（使用投票合约） ==========
   
@@ -511,40 +535,23 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
   };
 
   const handleSetMiningPool = async () => {
-    if (!poolAddress || !ethers.utils.isAddress(poolAddress)) {
-      showMessage('请输入有效的钱包地址', 'error');
-      return;
-    }
-    setLoading(true);
-    try {
-      const tx = await contract.setMiningPool(poolAddress, true);
-      await tx.wait();
-      showMessage(`成功添加矿池: ${poolAddress.slice(0,6)}...${poolAddress.slice(-4)}`);
-      
-      const now = Math.floor(Date.now() / 1000);
-      await supabase
-        .from('pool_performance')
-        .upsert({
-          pool_address: poolAddress,
-          base_requirement: 1000,
-          total_team_mining: 0,
-          period_start_time: now,
-          period_requirement: 1000,
-          periods_completed: 0,
-          child_pools: [],
-          is_active: true,
-          last_sync_time: now
-        });
-      
-      setPoolAddress('');
-      loadPoolList();
-    } catch (error) {
-      showMessage('添加矿池失败: ' + error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  if (!poolAddress || !ethers.utils.isAddress(poolAddress)) {
+    showMessage('请输入有效的钱包地址', 'error');
+    return;
+  }
+  setLoading(true);
+  try {
+    const tx = await contract.setMiningPool(poolAddress, true);
+    await tx.wait();
+    showMessage(`成功添加矿池: ${poolAddress.slice(0, 8)}...${poolAddress.slice(-6)}`);
+    setPoolAddress('');
+    await loadPoolList(); // 刷新列表
+  } catch (error) {
+    showMessage('添加矿池失败: ' + error.message, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
   const handleAddNode = async () => {
     if (!nodeAddress || !ethers.utils.isAddress(nodeAddress)) {
       showMessage('请输入有效的钱包地址', 'error');
