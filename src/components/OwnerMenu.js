@@ -190,19 +190,31 @@ const OwnerMenu = ({ contract, ownerAddress, onClose, onConfigChange }) => {
     }
   };
 
-  // 加载矿池列表（直接从合约读取）
+  // 加载矿池列表（从 Supabase 获取地址列表，从合约获取业绩）
 const loadPoolList = async () => {
-  if (!contract) return;
   setPoolListLoading(true);
   try {
-    // 获取所有矿池地址
-    const poolAddresses = await contract.getAllPools();
+    // 1. 从 Supabase 获取所有活跃矿池的地址列表
+    const { data: pools, error } = await supabase
+      .from('pool_performance')
+      .select('pool_address, period_start_time, periods_completed, is_active')
+      .eq('is_active', true); // 只加载状态为“活跃”的矿池
+
+    if (error) throw error;
+
+    if (!pools || pools.length === 0) {
+      setPoolList([]);
+      setPoolListLoading(false);
+      return;
+    }
+
     const now = Math.floor(Date.now() / 1000);
     const enrichedPools = [];
-    
-    for (const poolAddress of poolAddresses) {
+
+    for (const pool of pools) {
+      const poolAddress = pool.pool_address;
       try {
-        // 从合约获取矿池数据
+        // 2. 从合约获取该矿池的业绩数据（这些函数是正常的）
         const teamMining = await contract.getPoolTeamMining(poolAddress);
         const requirement = await contract.getPoolRequirement(poolAddress);
         const periodStart = await contract.getPoolPeriodStart(poolAddress);
@@ -210,9 +222,6 @@ const loadPoolList = async () => {
         const childPools = await contract.getPoolChildPools(poolAddress);
         
         // 计算当前周期要求（每45天增加300 SMA）
-        // 第1周期（periodsCompleted=0）：1000
-        // 第2周期（periodsCompleted=1）：1300
-        // 第3周期（periodsCompleted=2）：1600
         const currentRequirement = 1000 + (Number(periodsCompleted) * 300);
         
         // 计算剩余天数
@@ -236,7 +245,8 @@ const loadPoolList = async () => {
           is_active: true
         });
       } catch (e) {
-        console.error(`加载矿池 ${poolAddress} 失败:`, e);
+        console.error(`加载矿池 ${poolAddress} 业绩失败:`, e);
+        // 如果查询失败，添加一个表示错误的占位数据
         enrichedPools.push({
           pool_address: poolAddress,
           team_mining: 0,
@@ -244,7 +254,8 @@ const loadPoolList = async () => {
           remaining_days: 45,
           is_qualified: false,
           periods_completed: 0,
-          is_active: true
+          is_active: true,
+          loadError: true
         });
       }
     }
