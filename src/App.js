@@ -206,15 +206,22 @@ function App() {
     } catch (e) {}
   }, [currentAccount, miningContract]);
 
-  // ========== 查詢待領取分紅（使用代幣合約） ==========
+    // ========== 查詢待領取分紅（直接從 library 創建合約） ==========
   const loadPendingDividends = async () => {
     if (!currentAccount) return;
+    if (!library) {
+      console.log('library 未就緒');
+      return;
+    }
+    
     try {
-      const tokenContract = getCultureContract;
-      if (!tokenContract) {
-        console.log('代幣合約未就緒');
-        return;
-      }
+      // 直接從 library 創建代幣合約，不依賴 getCultureContract
+      const signer = library.getSigner();
+      const tokenContract = new ethers.Contract(
+        '0x27B925D32bb8e1633CaE40f2675286Be487a230B',
+        ['function getPendingDividends(address) view returns (uint256)'],
+        signer
+      );
       
       const dividends = await tokenContract.getPendingDividends(currentAccount);
       const dividendsNum = parseFloat(ethers.utils.formatEther(dividends));
@@ -226,10 +233,14 @@ function App() {
     }
   };
 
-  // ========== 領取分紅（使用代幣合約） ==========
+    // ========== 領取分紅（直接從 library 創建合約） ==========
   const handleClaimDividends = async () => {
     if (dividendLoading) return;
     if (!currentAccount) {
+      alert('請先連接錢包');
+      return;
+    }
+    if (!library) {
       alert('請先連接錢包');
       return;
     }
@@ -242,11 +253,12 @@ function App() {
     
     setDividendLoading(true);
     try {
-      const tokenContract = getCultureContract;
-      if (!tokenContract) {
-        alert('無法連接代幣合約');
-        return;
-      }
+      const signer = library.getSigner();
+      const tokenContract = new ethers.Contract(
+        '0x27B925D32bb8e1633CaE40f2675286Be487a230B',
+        ['function claimDividends() external'],
+        signer
+      );
       
       console.log('正在領取分紅...');
       const tx = await tokenContract.claimDividends();
@@ -352,6 +364,13 @@ function App() {
     return () => clearInterval(interval);
   }, [currentAccount, updateCooldown]);
 
+    // 單獨加載分紅數據（當 library 和 account 準備好時）
+  useEffect(() => {
+    if (currentAccount && library) {
+      loadPendingDividends();
+    }
+  }, [currentAccount, library]);
+  
   // 定時更新市場價格
   useEffect(() => {
     if (!miningContract) return;
