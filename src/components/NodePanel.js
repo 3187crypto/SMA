@@ -188,17 +188,6 @@ const NodePanel = ({ contract, userAddress, onClose }) => {
                 </div>
               </div>
               
-              {/* 节点分配规则卡片 */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-gray-700 text-sm font-medium mb-3">📋 {tr('nodeRules')}</p>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>{tr('nodeRule1')}</span></li>
-                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>{tr('nodeRule2')}</span></li>
-                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>{tr('nodeRule3')}</span></li>
-                  <li className="flex items-start gap-2"><span className="text-purple-500">•</span><span>{tr('nodeRule4')}</span></li>
-                </ul>
-              </div>
-              
               {/* 治理投票模块 */}
               <GovernancePanel 
                 contract={governanceContract}

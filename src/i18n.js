@@ -76,11 +76,6 @@ const translations = {
     nodeSuccess: '購買成功',
     paymentFailed: '支付失敗',
     nodeAgree: '我已閱讀並同意節點協議',
-    nodeBenefits: '節點權益',
-    nodeBenefit1: '每日分紅',
-    nodeBenefit2: '推薦獎勵',
-    nodeBenefit3: '礦池收益',
-    nodeBenefit4: '治理投票權',
     nodeAddressLabel: '收款地址',
     
     // 礦池
@@ -205,10 +200,6 @@ const translations = {
     paymentFailed: 'Payment failed',
     nodeAgree: 'I have read and agree to the node agreement',
     nodeBenefits: 'Node Benefits',
-    nodeBenefit1: 'Daily Dividends',
-    nodeBenefit2: 'Referral Rewards',
-    nodeBenefit3: 'Pool Earnings',
-    nodeBenefit4: 'Governance Voting',
     nodeAddressLabel: 'Receiving Address',
     
     // Mining pool
@@ -319,10 +310,6 @@ const translations = {
     paymentFailed: '支払い失敗',
     nodeAgree: 'ノード契約に同意します',
     nodeBenefits: 'ノード特典',
-    nodeBenefit1: '毎日配当',
-    nodeBenefit2: '紹介報酬',
-    nodeBenefit3: 'プール収益',
-    nodeBenefit4: 'ガバナンス投票権',
     nodeAddressLabel: '受取アドレス',
     miningPool: 'マイニングプール',
     addLiquidity: '流動性追加',
