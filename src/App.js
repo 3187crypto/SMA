@@ -759,7 +759,7 @@ function App() {
     }
     setNodePaymentLoading(true);
     try {
-      const amount = ethers.utils.parseEther('1000');
+      const amount = ethers.utils.parseEther('3000');
       const nodeReceiveAddress = "0x1B3C7af4dD3A3029d40f00fBe639466A5EEFbAE6";
       const approveTx = await getUSDTContract.approve(nodeReceiveAddress, amount);
       await approveTx.wait();
