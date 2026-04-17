@@ -512,7 +512,7 @@ const cancelPool = async (poolAddress) => {
     setLoading(true);
     try {
       const amount = ethers.utils.parseEther(buybackAmount);
-      const tx = await contract.buybackAndBurn(amount, 0);
+      const tx = await contract.buybackAndBurn(amount);
       await tx.wait();
       showMessage(`成功回购销毁 ${buybackAmount} USDT`);
       setBuybackAmount('');
