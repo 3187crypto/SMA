@@ -106,6 +106,21 @@ const translations = {
     skip: '暫不綁定',
     bind: '綁定'
   },
+
+    // 矿池健康度监控
+    poolHealthTitle: '礦池健康度監控',
+    qualifiedLabel: '✅ 達標',
+    notQualifiedLabel: '⚠️ 不達標',
+    periodAssessment: '第 {period} 期考核',
+    remainingDaysText: '剩餘 {days} 天',
+    teamTotalMining: '傘下總挖礦',
+    periodRequirementText: '本期要求',
+    progressText: '進度: {percent}%',
+    childPoolsTitle: '📌 下級礦池（業績已扣除）',
+    notQualifiedWarning: '⚠️ 業績不達標！剩餘 {days} 天內需達到 {requirement} SMA，否則將取消礦池資格。',
+    soonExpireWarning: '⏰ 距離下次考核僅剩 {days} 天，下期要求 {nextRequirement} SMA',
+  },
+
   en: {
     // Common
     appName: 'Super Culture Agent',
@@ -212,6 +227,8 @@ const translations = {
     skip: 'Skip',
     bind: 'Bind'
   },
+
+  
   ja: {
     appName: 'スーパーカルチャーエージェント',
     connectWallet: 'ウォレット接続',
