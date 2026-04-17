@@ -75,17 +75,7 @@ const PoolPanel = ({ contract, userAddress, onClose }) => {
                 </div>
               </div>
               
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-gray-700 text-sm font-medium mb-3">📋 {tr('poolBenefits')}</p>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-start gap-2"><span className="text-amber-500">•</span><span>{tr('poolBenefit1')}</span></li>
-                  <li className="flex items-start gap-2"><span className="text-amber-500">•</span><span>{tr('poolBenefit2')}</span></li>
-                  <li className="flex items-start gap-2"><span className="text-amber-500">•</span><span>{tr('poolBenefit3')}</span></li>
-                  <li className="flex items-start gap-2"><span className="text-amber-500">•</span><span>{tr('poolBenefit4')}</span></li>
-                </ul>
-              </div>
-              
-              {/* ✅ 矿池健康度监控 - 添加在这里 */}
+              {/* ✅ 矿池健康度监控 */}
               <PoolHealthMonitor 
                 contract={contract} 
                 poolAddress={userAddress}
