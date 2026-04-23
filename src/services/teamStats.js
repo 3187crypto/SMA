@@ -18,7 +18,7 @@ export const getDirectDownlines = async (contract, address) => {
     if (cached) {
       const { data, timestamp } = JSON.parse(cached);
       // 如果缓存时间在30秒以内，直接返回缓存数据
-      if (Date.now() - timestamp < 30000) {
+      if (Date.now() - timestamp < 300000) {
         console.log('使用缓存数据，共', data.length, '个下线');
         return data;
       }
