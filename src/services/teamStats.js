@@ -21,7 +21,6 @@ export const getDirectDownlines = async (contract, address) => {
     console.error('获取下级失败:', error);
     return [];
   }
-  // ...
 };
 
   const downlines = [];
