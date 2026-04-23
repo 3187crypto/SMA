@@ -21,7 +21,10 @@ export const getDirectDownlines = async (contract, address) => {
     console.error('获取下级失败:', error);
     return [];
   }
-};
+
+  if (!data || data.length === 0) {
+    return [];
+  }
 
   const downlines = [];
   for (const row of data) {
@@ -43,7 +46,7 @@ export const getDirectDownlines = async (contract, address) => {
         depositBase: parseFloat(ethers.utils.formatEther(userInfo.depositBase)),
         isPool,
         isNode: isNode.isNode,
-        subCount: count || 0   // ✅ 关键：动态子成员数量
+        subCount: count || 0
       });
     } catch (e) {
       console.error('获取用户信息失败:', row.downline, e);
