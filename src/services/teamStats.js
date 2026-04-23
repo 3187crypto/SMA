@@ -95,7 +95,7 @@ export const getTeamStats = async (contract, address) => {
 
     for (const row of data) {
       try {
-        const userInfo = await contract.users(row.downline);
+        const userInfos = await Promise.all(data.map(row => contract.users(row.downline)));
         totalReward += parseFloat(ethers.utils.formatEther(userInfo.totalMiningRewarded));
       } catch (e) {}
 
