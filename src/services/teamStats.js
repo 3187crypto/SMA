@@ -167,19 +167,22 @@ export const updateTeamData = async (contract) => {
   // 重新计算团队统计
   const teamStats = new Map();
   for (const binding of data) {
-    const upline = binding.upline;
-    if (!teamStats.has(upline)) {
-      teamStats.set(upline, { reward: 0, count: 0 });
-    }
-    const stats = teamStats.get(upline);
-    stats.count++;
-    
-    try {
-      const userInfo = await contract.users(binding.downline);
-      stats.reward += parseFloat(ethers.utils.formatEther(userInfo.totalMiningRewarded));
-    } catch (e) {}
-    teamStats.set(upline, stats);
+  const upline = binding.upline;
+  if (!teamStats.has(upline)) {
+    teamStats.set(upline, { reward: 0, count: 0 });
   }
+  const stats = teamStats.get(upline);
+  stats.count++;
+  
+  // ✅ 修复：正确获取 userInfo
+  try {
+    const userInfo = await contract.users(binding.downline);
+    stats.reward += parseFloat(ethers.utils.formatEther(userInfo.totalMiningRewarded));
+  } catch (e) {
+    console.error('获取用户信息失败:', binding.downline);
+  }
+  teamStats.set(upline, stats);
+}
 
   // 保存到 team_stats 表
   for (const [address, stats] of teamStats.entries()) {
