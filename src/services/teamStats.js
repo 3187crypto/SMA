@@ -11,47 +11,70 @@ let lastCacheTime = 0;
 const CACHE_DURATION = 60000; // 1分钟缓存
 
 export const getDirectDownlines = async (contract, address) => {
+  // ========== 缓存检查（30秒内不重复查询） ==========
+  const cacheKey = `team_${address.toLowerCase()}`;
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      // 如果缓存时间在30秒以内，直接返回缓存数据
+      if (Date.now() - timestamp < 30000) {
+        console.log('使用缓存数据，共', data.length, '个下线');
+        return data;
+      }
+    }
+  } catch(e) {
+    console.log('缓存读取失败:', e);
+  }
+  // ========== 缓存检查结束 ==========
+
+  // 从 Supabase 查询下线地址列表
   const { data, error } = await supabase
     .from('team_bindings')
     .select('downline')
     .eq('upline', address.toLowerCase())
     .or(`contract_address.eq.${CURRENT_CONTRACT_ADDRESS},contract_address.is.null`);
 
-  if (error) {
-    console.error('获取下级失败:', error);
+  if (error || !data || data.length === 0) {
     return [];
   }
 
-  if (!data || data.length === 0) {
-    return [];
-  }
-
-  const downlines = [];
-  for (const row of data) {
-    try {
-      // 查询该下级是否有自己的下级（用于显示展开按钮）
-      const { count, error: countError } = await supabase
+  // 并行查询所有下线的数据
+  const [userInfos, isPools, isNodes, subCounts] = await Promise.all([
+    Promise.all(data.map(row => contract.users(row.downline).catch(() => null))),
+    Promise.all(data.map(row => contract.isMiningPool(row.downline).catch(() => false))),
+    Promise.all(data.map(row => contract.nodes(row.downline).catch(() => ({ isNode: false })))),
+    Promise.all(data.map(row => 
+      supabase
         .from('team_bindings')
         .select('*', { count: 'exact', head: true })
         .eq('upline', row.downline)
-        .eq('contract_address', CURRENT_CONTRACT_ADDRESS);
+        .eq('contract_address', CURRENT_CONTRACT_ADDRESS)
+        .then(res => ({ count: res.count || 0 }))
+        .catch(() => ({ count: 0 }))
+    ))
+  ]);
 
-      const userInfo = await contract.users(row.downline);
-      const isPool = await contract.isMiningPool(row.downline);
-      const isNode = await contract.nodes(row.downline);
+  // 组装结果
+  const downlines = data.map((row, index) => ({
+    address: row.downline,
+    totalRewarded: userInfos[index] ? parseFloat(ethers.utils.formatEther(userInfos[index].totalMiningRewarded)) : 0,
+    depositBase: userInfos[index] ? parseFloat(ethers.utils.formatEther(userInfos[index].depositBase)) : 0,
+    isPool: isPools[index] || false,
+    isNode: isNodes[index]?.isNode || false,
+    subCount: subCounts[index]?.count || 0
+  }));
 
-      downlines.push({
-        address: row.downline,
-        totalRewarded: parseFloat(ethers.utils.formatEther(userInfo.totalMiningRewarded)),
-        depositBase: parseFloat(ethers.utils.formatEther(userInfo.depositBase)),
-        isPool,
-        isNode: isNode.isNode,
-        subCount: count || 0
-      });
-    } catch (e) {
-      console.error('获取用户信息失败:', row.downline, e);
-    }
+  // ========== 保存到缓存 ==========
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      data: downlines,
+      timestamp: Date.now()
+    }));
+  } catch(e) {
+    console.log('缓存保存失败:', e);
   }
+  // ========== 缓存保存结束 ==========
 
   return downlines;
 };
