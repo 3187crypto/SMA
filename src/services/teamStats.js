@@ -93,12 +93,19 @@ export const getTeamStats = async (contract, address) => {
     let totalReward = 0;
     let totalCount = data.length;
 
-    for (const row of data) {
-      try {
-        const userInfos = await Promise.all(data.map(row => contract.users(row.downline)));
-        totalReward += parseFloat(ethers.utils.formatEther(userInfo.totalMiningRewarded));
-      } catch (e) {}
+    // 并行查询所有下线的用户信息
+    const userInfos = await Promise.all(
+      data.map(row => contract.users(row.downline).catch(() => null))
+    );
 
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const userInfo = userInfos[i];
+      if (userInfo) {
+        totalReward += parseFloat(ethers.utils.formatEther(userInfo.totalMiningRewarded));
+      }
+      
+      // 递归查询下级的下级
       const sub = await countTeam(row.downline);
       totalReward += sub.reward;
       totalCount += sub.count;
