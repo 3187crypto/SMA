@@ -15,12 +15,14 @@ export const getDirectDownlines = async (contract, address) => {
     .from('team_bindings')
     .select('downline')
     .eq('upline', address.toLowerCase())
-    .eq('contract_address', CURRENT_CONTRACT_ADDRESS);
+    .or(`contract_address.eq.${CURRENT_CONTRACT_ADDRESS},contract_address.is.null`);
 
   if (error) {
     console.error('获取下级失败:', error);
     return [];
   }
+  // ...
+};
 
   const downlines = [];
   for (const row of data) {
