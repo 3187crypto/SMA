@@ -2,7 +2,7 @@
 const translations = {
   zh: {
     // 通用
-    appName: '超級文化智能體',
+    appName: '超級智能體',
     connectWallet: '連接錢包',
     disconnect: '斷開連接',
     refresh: '刷新',
